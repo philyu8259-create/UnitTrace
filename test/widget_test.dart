@@ -97,7 +97,7 @@ void main() {
     expect(find.text('Alex Tenant'), findsOneWidget);
   });
 
-  testWidgets('free plan blocks a second property', (tester) async {
+  testWidgets('beta allows two properties and blocks a third', (tester) async {
     await tester.pumpWidget(
       UnitTraceApp(
         store: InMemoryUnitTraceStore(),
@@ -117,6 +117,16 @@ void main() {
 
     await tester.tap(find.text('Create property').first);
     await tester.pumpAndSettle();
-    expect(find.text('Free property limit reached'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const Key('property-name-field')),
+      'Pine Street Apt',
+    );
+    await tester.tap(find.text('Save property'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pine Street Apt'), findsOneWidget);
+
+    await tester.tap(find.text('Create property').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Beta property limit reached'), findsOneWidget);
   });
 }

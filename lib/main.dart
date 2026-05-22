@@ -29,6 +29,7 @@ const _warmSurface = Color(0xFFFFFCF7);
 const _line = Color(0xFFE4E0D8);
 const _brass = Color(0xFFD49A36);
 const _danger = Color(0xFF9D3D2F);
+const _mvpPropertyLimit = 2;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -206,6 +207,7 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
   List<InspectionRecord> _inspections = [];
   PropertyRecord? _selectedProperty;
   InspectionRecord? _selectedInspection;
+  int _mobileTabIndex = 0;
   bool _loading = true;
 
   AppStrings get strings => AppStrings.of(context);
@@ -232,7 +234,7 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
   }
 
   Future<void> _createProperty() async {
-    if (_properties.isNotEmpty) {
+    if (_properties.length >= _mvpPropertyLimit) {
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
@@ -257,6 +259,7 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
     setState(() {
       _selectedProperty = property;
       _selectedInspection = null;
+      _mobileTabIndex = 0;
     });
     await _reload();
   }
@@ -284,11 +287,18 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
         ),
       );
     }
-    setState(() => _selectedInspection = inspection);
+    setState(() {
+      _selectedInspection = inspection;
+      _mobileTabIndex = 1;
+    });
     await _reload();
   }
 
   Future<void> _openReportHistory() async {
+    if (MediaQuery.sizeOf(context).width < 760) {
+      setState(() => _mobileTabIndex = 2);
+      return;
+    }
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -334,9 +344,12 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
                 _selectedInspection = _inspections
                     .where((inspection) => inspection.propertyId == property.id)
                     .firstOrNull;
+                _mobileTabIndex = 0;
               }),
-              onSelectInspection: (inspection) =>
-                  setState(() => _selectedInspection = inspection),
+              onSelectInspection: (inspection) => setState(() {
+                _selectedInspection = inspection;
+                _mobileTabIndex = 1;
+              }),
               onStartInspection: _startInspection,
             );
             final content =
@@ -355,15 +368,26 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
                     imagePicker: widget.imagePicker,
                   );
             if (!wide) {
-              final hasWorkspace =
-                  _selectedProperty != null && _selectedInspection != null;
-              return ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  sidebar,
-                  if (hasWorkspace) ...[const SizedBox(height: 16), content],
-                ],
-              );
+              final tabBody = switch (_mobileTabIndex) {
+                0 => ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 104),
+                  children: [sidebar],
+                ),
+                1 => ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 104),
+                  children: [content],
+                ),
+                2 => _ReportHistoryPanel(
+                  strings: strings,
+                  showClose: false,
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 104),
+                ),
+                _ => _MorePanel(
+                  strings: strings,
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 104),
+                ),
+              };
+              return tabBody;
             }
             return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -385,6 +409,65 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
               ],
             );
           },
+        ),
+      ),
+      bottomNavigationBar: MediaQuery.sizeOf(context).width >= 760
+          ? null
+          : _FloatingMobileTabs(
+              strings: strings,
+              index: _mobileTabIndex,
+              onChanged: (index) => setState(() => _mobileTabIndex = index),
+            ),
+    );
+  }
+}
+
+class _FloatingMobileTabs extends StatelessWidget {
+  const _FloatingMobileTabs({
+    required this.strings,
+    required this.index,
+    required this.onChanged,
+  });
+
+  final AppStrings strings;
+  final int index;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      minimum: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: _PremiumSurface(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+        backgroundColor: Colors.white,
+        child: NavigationBar(
+          selectedIndex: index,
+          onDestinationSelected: onChanged,
+          height: 58,
+          backgroundColor: Colors.transparent,
+          indicatorColor: _mist,
+          destinations: [
+            NavigationDestination(
+              icon: const Icon(Icons.apartment_outlined),
+              selectedIcon: const Icon(Icons.apartment),
+              label: strings.propertiesTab,
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.fact_check_outlined),
+              selectedIcon: const Icon(Icons.fact_check),
+              label: strings.inspectionTab,
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.folder_copy_outlined),
+              selectedIcon: const Icon(Icons.folder_copy),
+              label: strings.reportsTab,
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.more_horiz),
+              selectedIcon: const Icon(Icons.more),
+              label: strings.moreTab,
+            ),
+          ],
         ),
       ),
     );
@@ -1276,13 +1359,6 @@ class _ReportHistorySheet extends StatefulWidget {
 }
 
 class _ReportHistorySheetState extends State<_ReportHistorySheet> {
-  late final Future<List<ReportArchiveEntry>> _reportsFuture = _loadReports();
-
-  Future<List<ReportArchiveEntry>> _loadReports() async {
-    final directory = await ReportExporter.reportsDirectory();
-    return ReportArchive().scanDirectory(directory);
-  }
-
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -1292,101 +1368,230 @@ class _ReportHistorySheetState extends State<_ReportHistorySheet> {
         minChildSize: 0.45,
         maxChildSize: 0.95,
         builder: (context, scrollController) {
-          return FutureBuilder<List<ReportArchiveEntry>>(
-            future: _reportsFuture,
-            builder: (context, snapshot) {
-              final reports = snapshot.data ?? const <ReportArchiveEntry>[];
-              return ListView(
-                controller: scrollController,
-                padding: const EdgeInsets.all(20),
-                children: [
-                  _SectionHeader(
-                    title: widget.strings.reportHistory,
-                    subtitle: widget.strings.archiveSubtitle,
-                    trailing: IconButton(
+          return _ReportHistoryPanel(
+            strings: widget.strings,
+            scrollController: scrollController,
+            showClose: true,
+            padding: const EdgeInsets.all(20),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ReportHistoryPanel extends StatefulWidget {
+  const _ReportHistoryPanel({
+    required this.strings,
+    required this.padding,
+    this.scrollController,
+    this.showClose = false,
+  });
+
+  final AppStrings strings;
+  final EdgeInsetsGeometry padding;
+  final ScrollController? scrollController;
+  final bool showClose;
+
+  @override
+  State<_ReportHistoryPanel> createState() => _ReportHistoryPanelState();
+}
+
+class _ReportHistoryPanelState extends State<_ReportHistoryPanel> {
+  late final Future<List<ReportArchiveEntry>> _reportsFuture = _loadReports();
+
+  Future<List<ReportArchiveEntry>> _loadReports() async {
+    final directory = await ReportExporter.reportsDirectory();
+    return ReportArchive().scanDirectory(directory);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<ReportArchiveEntry>>(
+      future: _reportsFuture,
+      builder: (context, snapshot) {
+        final reports = snapshot.data ?? const <ReportArchiveEntry>[];
+        return ListView(
+          controller: widget.scrollController,
+          padding: widget.padding,
+          children: [
+            _SectionHeader(
+              title: widget.strings.reportHistory,
+              subtitle: widget.strings.archiveSubtitle,
+              trailing: widget.showClose
+                  ? IconButton(
                       tooltip: widget.strings.cancel,
                       onPressed: () => Navigator.pop(context),
                       icon: const Icon(Icons.close),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  const _HeroImage(
-                    asset: 'assets/images/report_archive.png',
-                    height: 150,
-                  ),
-                  const SizedBox(height: 14),
-                  if (snapshot.connectionState == ConnectionState.waiting)
-                    const Center(child: CircularProgressIndicator())
-                  else if (reports.isEmpty)
-                    _PremiumSurface(
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.inventory_2_outlined,
-                            color: _deepEmerald,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(child: Text(widget.strings.noReports)),
-                        ],
-                      ),
                     )
-                  else
-                    ...reports.map(
-                      (report) => Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: _PremiumSurface(
-                          padding: EdgeInsets.zero,
-                          child: ListTile(
-                            leading: Container(
-                              width: 42,
-                              height: 42,
-                              decoration: BoxDecoration(
-                                color: _mist,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(
-                                Icons.picture_as_pdf_outlined,
-                                color: _deepEmerald,
-                              ),
-                            ),
-                            title: Text(
-                              report.propertyName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            subtitle: Text(
-                              '${report.reportId} | ${report.evidenceCount} ${widget.strings.evidence.toLowerCase()} | ${_shortHash(report.manifestHash)}',
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            trailing: Wrap(
-                              spacing: 2,
-                              children: [
-                                IconButton(
-                                  tooltip: widget.strings.viewReport,
-                                  onPressed: () => _openPdfPreview(
-                                    context,
-                                    widget.strings,
-                                    report.pdfFile,
-                                  ),
-                                  icon: const Icon(Icons.visibility_outlined),
-                                ),
-                                IconButton(
-                                  tooltip: widget.strings.shareReportAction,
-                                  onPressed: () => _sharePdf(report.pdfFile),
-                                  icon: const Icon(Icons.ios_share_outlined),
-                                ),
-                              ],
-                            ),
-                          ),
+                  : null,
+            ),
+            const SizedBox(height: 12),
+            const _HeroImage(
+              asset: 'assets/images/report_archive.png',
+              height: 150,
+            ),
+            const SizedBox(height: 14),
+            if (snapshot.connectionState == ConnectionState.waiting)
+              const Center(child: CircularProgressIndicator())
+            else if (reports.isEmpty)
+              _PremiumSurface(
+                child: Row(
+                  children: [
+                    const Icon(Icons.inventory_2_outlined, color: _deepEmerald),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text(widget.strings.noReports)),
+                  ],
+                ),
+              )
+            else
+              ...reports.map(
+                (report) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _PremiumSurface(
+                    padding: EdgeInsets.zero,
+                    child: ListTile(
+                      leading: Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: _mist,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.picture_as_pdf_outlined,
+                          color: _deepEmerald,
                         ),
                       ),
+                      title: Text(
+                        report.propertyName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        '${report.reportId} | ${report.evidenceCount} ${widget.strings.evidence.toLowerCase()} | ${_shortHash(report.manifestHash)}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: Wrap(
+                        spacing: 2,
+                        children: [
+                          IconButton(
+                            tooltip: widget.strings.viewReport,
+                            onPressed: () => _openPdfPreview(
+                              context,
+                              widget.strings,
+                              report.pdfFile,
+                            ),
+                            icon: const Icon(Icons.visibility_outlined),
+                          ),
+                          IconButton(
+                            tooltip: widget.strings.shareReportAction,
+                            onPressed: () => _sharePdf(report.pdfFile),
+                            icon: const Icon(Icons.ios_share_outlined),
+                          ),
+                        ],
+                      ),
                     ),
-                ],
-              );
-            },
-          );
-        },
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _MorePanel extends StatelessWidget {
+  const _MorePanel({required this.strings, required this.padding});
+
+  final AppStrings strings;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: padding,
+      children: [
+        _SectionHeader(title: strings.moreTab, subtitle: strings.moreSubtitle),
+        const SizedBox(height: 12),
+        _PremiumSurface(
+          backgroundColor: const Color(0xFFF8F2E8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                strings.proTitle,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                strings.proSubtitle,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: null,
+                icon: const Icon(Icons.workspace_premium_outlined),
+                label: Text(strings.comingSoon),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _MoreTile(
+          icon: Icons.privacy_tip_outlined,
+          title: strings.privacyPolicy,
+          subtitle: strings.linkPending,
+        ),
+        _MoreTile(
+          icon: Icons.support_agent_outlined,
+          title: strings.support,
+          subtitle: strings.linkPending,
+        ),
+        _MoreTile(
+          icon: Icons.restore_outlined,
+          title: strings.restorePurchases,
+          subtitle: strings.comingSoon,
+        ),
+        _MoreTile(
+          icon: Icons.gavel_outlined,
+          title: strings.disclaimerTitle,
+          subtitle: strings.disclaimer,
+        ),
+        _MoreTile(
+          icon: Icons.info_outline,
+          title: strings.version,
+          subtitle: '1.0.0',
+        ),
+      ],
+    );
+  }
+}
+
+class _MoreTile extends StatelessWidget {
+  const _MoreTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: _PremiumSurface(
+        padding: EdgeInsets.zero,
+        child: ListTile(
+          leading: Icon(icon, color: _deepEmerald),
+          title: Text(title),
+          subtitle: Text(subtitle),
+        ),
       ),
     );
   }

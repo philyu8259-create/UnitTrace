@@ -91,6 +91,8 @@ class ReportExporter {
     final baseFont = pw.Font.ttf(baseFontData);
     final boldFont = pw.Font.ttf(boldFontData);
     final pdfTheme = pw.ThemeData.withFont(base: baseFont, bold: boldFont);
+    final labels = _ReportPdfLabels(strings);
+    final generatedAt = dateFormat.format(manifest.generatedAt.toLocal());
 
     doc.addPage(
       pw.MultiPage(
@@ -99,98 +101,110 @@ class ReportExporter {
           theme: pdfTheme,
         ),
         footer: (context) => pw.Text(
-          '${strings.appTitle} | ${manifest.reportId} | ${manifest.manifestHash.substring(0, 12)}',
+          '${strings.appTitle} | ${manifest.reportId} | ${labels.pageLabel(context.pageNumber, context.pagesCount)} | ${manifest.manifestHash.substring(0, 12)}',
           style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
         ),
         build: (context) => [
-          pw.Row(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Expanded(
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text(
-                      strings.trustedOffline,
+          _coverHeader(
+            cover: cover,
+            title: labels.reportTitle,
+            subtitle: strings.trustedOffline,
+            property: manifest.property,
+            generatedAt: generatedAt,
+            labels: labels,
+          ),
+          pw.SizedBox(height: 14),
+          _summaryGrid(
+            labels: labels,
+            evidenceCount: manifest.evidenceCount,
+            photoCount: manifest.photoCount,
+            signatureCount: manifest.signatures.length,
+          ),
+          pw.SizedBox(height: 16),
+          _sectionTitle(labels.reportDetails),
+          pw.SizedBox(height: 6),
+          _infoTable([
+            [labels.reportId, manifest.reportId],
+            [
+              labels.inspectionType,
+              labels.inspectionTypeName(manifest.inspection.type),
+            ],
+            [labels.generatedAt, generatedAt],
+            [labels.propertyName, manifest.property.name],
+            [labels.address, manifest.property.address],
+            [labels.device, manifest.deviceLabel],
+            [labels.appVersion, manifest.appVersion],
+            [labels.manifestHash, manifest.manifestHash],
+          ]),
+          pw.SizedBox(height: 16),
+          _sectionTitle(strings.evidence),
+          pw.SizedBox(height: 8),
+          if (manifest.evidenceItems.isEmpty)
+            _emptyBlock(labels.noEvidence)
+          else
+            ...manifest.rooms.map((room) {
+              final items = manifest.evidenceItems
+                  .where((item) => item.roomId == room.id)
+                  .toList();
+              if (items.isEmpty) {
+                return pw.SizedBox.shrink();
+              }
+              return pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Container(
+                    width: double.infinity,
+                    padding: const pw.EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 7,
+                    ),
+                    decoration: const pw.BoxDecoration(
+                      color: PdfColor.fromInt(0xFFE7F0EC),
+                    ),
+                    child: pw.Text(
+                      '${room.name} - ${items.length} ${labels.items}',
                       style: pw.TextStyle(
-                        fontSize: 24,
+                        fontSize: 13,
                         fontWeight: pw.FontWeight.bold,
                       ),
                     ),
-                    pw.SizedBox(height: 8),
-                    pw.Text(
-                      manifest.property.name,
-                      style: const pw.TextStyle(fontSize: 16),
-                    ),
-                    pw.Text(
-                      manifest.property.address,
-                      style: const pw.TextStyle(
-                        fontSize: 11,
-                        color: PdfColors.grey700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              pw.Image(cover, width: 130),
-            ],
-          ),
-          pw.SizedBox(height: 20),
-          _infoTable([
-            ['Report ID', manifest.reportId],
-            ['Inspection type', manifest.inspection.type.storageKey],
-            ['Generated at', dateFormat.format(manifest.generatedAt.toLocal())],
-            ['Photo count', manifest.photoCount.toString()],
-            ['Manifest hash', manifest.manifestHash],
-          ]),
-          pw.SizedBox(height: 18),
-          pw.Text(
-            strings.evidence,
-            style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
-          ),
-          pw.SizedBox(height: 8),
-          ...manifest.rooms.map((room) {
-            final items = manifest.evidenceItems
-                .where((item) => item.roomId == room.id)
-                .toList();
-            if (items.isEmpty) {
-              return pw.SizedBox.shrink();
-            }
-            return pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text(
-                  room.name,
-                  style: pw.TextStyle(
-                    fontSize: 14,
-                    fontWeight: pw.FontWeight.bold,
                   ),
-                ),
-                pw.SizedBox(height: 6),
-                ...items.map((item) => _evidenceBlock(item, dateFormat)),
-                pw.SizedBox(height: 12),
-              ],
-            );
-          }),
-          pw.SizedBox(height: 12),
-          pw.Text(
-            strings.signatures,
-            style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
-          ),
+                  pw.SizedBox(height: 6),
+                  ...items.map(
+                    (item) => _evidenceBlock(item, dateFormat, labels),
+                  ),
+                  pw.SizedBox(height: 12),
+                ],
+              );
+            }),
           pw.SizedBox(height: 8),
-          ...manifest.signatures.map(
-            (signature) => _signatureBlock(signature, dateFormat),
-          ),
-          pw.SizedBox(height: 12),
-          pw.Text(
-            strings.disclaimer,
-            style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+          _sectionTitle(strings.signatures),
+          pw.SizedBox(height: 8),
+          if (manifest.signatures.isEmpty)
+            _emptyBlock(labels.noSignatures)
+          else
+            ...manifest.signatures.map(
+              (signature) => _signatureBlock(signature, dateFormat, labels),
+            ),
+          pw.SizedBox(height: 14),
+          _sectionTitle(labels.disclaimerTitle),
+          pw.SizedBox(height: 6),
+          pw.Container(
+            padding: const pw.EdgeInsets.all(10),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.grey100,
+              border: pw.Border.all(color: PdfColors.grey300),
+            ),
+            child: pw.Text(
+              strings.disclaimer,
+              style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+            ),
           ),
           if (watermarked)
             pw.Padding(
-              padding: const pw.EdgeInsets.only(top: 20),
+              padding: const pw.EdgeInsets.only(top: 18),
               child: pw.Text(
-                'Generated with UnitTrace Free',
+                labels.freeWatermark,
                 style: const pw.TextStyle(
                   fontSize: 11,
                   color: PdfColors.grey500,
@@ -204,9 +218,143 @@ class ReportExporter {
     return doc.save();
   }
 
+  pw.Widget _coverHeader({
+    required pw.ImageProvider cover,
+    required String title,
+    required String subtitle,
+    required PropertyRecord property,
+    required String generatedAt,
+    required _ReportPdfLabels labels,
+  }) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(14),
+      decoration: pw.BoxDecoration(
+        color: const PdfColor.fromInt(0xFFFBF7EF),
+        border: pw.Border.all(color: PdfColors.grey300),
+      ),
+      child: pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Expanded(
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  title,
+                  style: pw.TextStyle(
+                    fontSize: 24,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 6),
+                pw.Text(
+                  subtitle,
+                  style: const pw.TextStyle(
+                    fontSize: 11,
+                    color: PdfColors.grey700,
+                  ),
+                ),
+                pw.SizedBox(height: 14),
+                pw.Text(
+                  property.name,
+                  style: pw.TextStyle(
+                    fontSize: 16,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.Text(
+                  property.address,
+                  style: const pw.TextStyle(
+                    fontSize: 10,
+                    color: PdfColors.grey700,
+                  ),
+                ),
+                pw.SizedBox(height: 8),
+                pw.Text(
+                  '${labels.generatedAt}: $generatedAt',
+                  style: const pw.TextStyle(
+                    fontSize: 9,
+                    color: PdfColors.grey700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          pw.SizedBox(width: 18),
+          pw.Image(cover, width: 118),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _summaryGrid({
+    required _ReportPdfLabels labels,
+    required int evidenceCount,
+    required int photoCount,
+    required int signatureCount,
+  }) {
+    return pw.Row(
+      children: [
+        _summaryCell(labels.evidenceCount, evidenceCount.toString()),
+        pw.SizedBox(width: 8),
+        _summaryCell(labels.photoCount, photoCount.toString()),
+        pw.SizedBox(width: 8),
+        _summaryCell(labels.signatureCount, signatureCount.toString()),
+      ],
+    );
+  }
+
+  pw.Widget _summaryCell(String label, String value) {
+    return pw.Expanded(
+      child: pw.Container(
+        padding: const pw.EdgeInsets.all(10),
+        decoration: pw.BoxDecoration(
+          border: pw.Border.all(color: PdfColors.grey300),
+        ),
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text(
+              value,
+              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+            ),
+            pw.SizedBox(height: 2),
+            pw.Text(
+              label,
+              style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  pw.Widget _sectionTitle(String title) {
+    return pw.Text(
+      title,
+      style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+    );
+  }
+
+  pw.Widget _emptyBlock(String text) {
+    return pw.Container(
+      width: double.infinity,
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.grey100,
+        border: pw.Border.all(color: PdfColors.grey300),
+      ),
+      child: pw.Text(
+        text,
+        style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+      ),
+    );
+  }
+
   pw.Widget _signatureBlock(
     SignatureRecord signature,
     DateFormat dateFormat,
+    _ReportPdfLabels labels,
   ) {
     pw.Widget? signatureImage;
     if (signature.signaturePath != null) {
@@ -242,7 +390,7 @@ class ReportExporter {
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Text(
-            '${signature.signerRole}: ${signature.signerName} | ${dateFormat.format(signature.signedAt.toLocal())}',
+            '${labels.signatureRole(signature.signerRole)}: ${signature.signerName} | ${labels.signedAt}: ${dateFormat.format(signature.signedAt.toLocal())}',
           ),
           ?signatureImage,
           if (signature.signatureHash != null)
@@ -261,9 +409,15 @@ class ReportExporter {
     );
   }
 
-  pw.Widget _evidenceBlock(EvidenceItemRecord item, DateFormat dateFormat) {
+  pw.Widget _evidenceBlock(
+    EvidenceItemRecord item,
+    DateFormat dateFormat,
+    _ReportPdfLabels labels,
+  ) {
     pw.Widget? image;
-    if (item.photoPath != null && File(item.photoPath!).existsSync()) {
+    final photoMissing =
+        item.photoPath != null && !File(item.photoPath!).existsSync();
+    if (item.photoPath != null && !photoMissing) {
       final bytes = File(item.photoPath!).readAsBytesSync();
       image = pw.Image(
         pw.MemoryImage(bytes),
@@ -282,22 +436,42 @@ class ReportExporter {
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           if (image != null) ...[image, pw.SizedBox(width: 10)],
+          if (image == null && item.photoPath != null) ...[
+            pw.Container(
+              width: 120,
+              height: 90,
+              alignment: pw.Alignment.center,
+              decoration: pw.BoxDecoration(
+                color: PdfColors.grey100,
+                border: pw.Border.all(color: PdfColors.grey300),
+              ),
+              child: pw.Text(
+                labels.photoFileMissing,
+                textAlign: pw.TextAlign.center,
+                style: const pw.TextStyle(
+                  fontSize: 8,
+                  color: PdfColors.grey700,
+                ),
+              ),
+            ),
+            pw.SizedBox(width: 10),
+          ],
           pw.Expanded(
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 pw.Text(
-                  item.description.isEmpty ? '(No note)' : item.description,
+                  item.description.isEmpty ? labels.noNote : item.description,
                 ),
                 pw.Text(
-                  'Severity: ${item.severity.storageKey}',
+                  '${labels.severity}: ${labels.severityName(item.severity)}',
                   style: const pw.TextStyle(
                     fontSize: 9,
                     color: PdfColors.grey700,
                   ),
                 ),
                 pw.Text(
-                  'Captured: ${dateFormat.format(item.capturedAt.toLocal())}',
+                  '${labels.capturedAt}: ${dateFormat.format(item.capturedAt.toLocal())}',
                   style: const pw.TextStyle(
                     fontSize: 9,
                     color: PdfColors.grey700,
@@ -305,7 +479,7 @@ class ReportExporter {
                 ),
                 if (item.latitude != null && item.longitude != null)
                   pw.Text(
-                    'Location: ${item.latitude!.toStringAsFixed(5)}, ${item.longitude!.toStringAsFixed(5)}',
+                    '${labels.location}: ${item.latitude!.toStringAsFixed(5)}, ${item.longitude!.toStringAsFixed(5)}',
                     style: const pw.TextStyle(
                       fontSize: 9,
                       color: PdfColors.grey700,
@@ -321,7 +495,7 @@ class ReportExporter {
                   ),
                 if (item.exifSummary != null)
                   pw.Text(
-                    item.exifSummary!,
+                    labels.exifSummary(item.exifSummary!),
                     style: const pw.TextStyle(
                       fontSize: 8,
                       color: PdfColors.grey600,
@@ -365,5 +539,75 @@ class ReportExporter {
           )
           .toList(),
     );
+  }
+}
+
+class _ReportPdfLabels {
+  const _ReportPdfLabels(this.strings);
+
+  final AppStrings strings;
+
+  bool get isChinese => strings.isChinese;
+
+  String get reportTitle => isChinese ? '房况证据报告' : 'Property Evidence Report';
+  String get reportDetails => isChinese ? '报告详情' : 'Report details';
+  String get reportId => isChinese ? '报告 ID' : 'Report ID';
+  String get inspectionType => isChinese ? '检查类型' : 'Inspection type';
+  String get generatedAt => isChinese ? '生成时间' : 'Generated at';
+  String get propertyName => isChinese ? '房屋名称' : 'Property name';
+  String get address => isChinese ? '地址' : 'Address';
+  String get device => isChinese ? '设备' : 'Device';
+  String get appVersion => isChinese ? 'App 版本' : 'App version';
+  String get manifestHash => isChinese ? 'Manifest 哈希' : 'Manifest hash';
+  String get evidenceCount => isChinese ? '证据数量' : 'Evidence items';
+  String get photoCount => isChinese ? '照片数量' : 'Photos';
+  String get signatureCount => isChinese ? '签名数量' : 'Signatures';
+  String get items => isChinese ? '项' : 'items';
+  String get noEvidence =>
+      isChinese ? '本报告没有证据记录。' : 'No evidence items in this report.';
+  String get noSignatures =>
+      isChinese ? '本报告没有签名记录。' : 'No signatures in this report.';
+  String get disclaimerTitle => isChinese ? '免责声明' : 'Disclaimer';
+  String get freeWatermark =>
+      isChinese ? '由 UnitTrace 内测版生成' : 'Generated with UnitTrace Beta';
+  String get noNote => isChinese ? '无备注' : '(No note)';
+  String get severity => isChinese ? '严重程度' : 'Severity';
+  String get capturedAt => isChinese ? '采集时间' : 'Captured';
+  String get signedAt => isChinese ? '签署时间' : 'Signed at';
+  String get location => isChinese ? '位置' : 'Location';
+  String get photoFileMissing => isChinese ? '照片文件缺失' : 'Photo file missing';
+
+  String pageLabel(int pageNumber, int pageCount) {
+    return isChinese
+        ? '第 $pageNumber / $pageCount 页'
+        : 'Page $pageNumber / $pageCount';
+  }
+
+  String exifSummary(String summary) {
+    if (!isChinese) return summary;
+    return summary.replaceAll('Source:', '来源：').replaceAll('File:', '文件：');
+  }
+
+  String inspectionTypeName(InspectionType type) {
+    return switch (type) {
+      InspectionType.moveIn => strings.moveIn,
+      InspectionType.moveOut => strings.moveOut,
+      InspectionType.general => strings.generalInspection,
+    };
+  }
+
+  String severityName(EvidenceSeverity severity) {
+    return switch (severity) {
+      EvidenceSeverity.good => strings.good,
+      EvidenceSeverity.note => strings.note,
+      EvidenceSeverity.issue => strings.issue,
+      EvidenceSeverity.urgent => strings.urgent,
+    };
+  }
+
+  String signatureRole(String role) {
+    if (role == 'Tenant') return strings.tenant;
+    if (role == 'Landlord') return strings.landlord;
+    return role;
   }
 }

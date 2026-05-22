@@ -33,8 +33,8 @@ class AppStrings {
       ? '还没有房屋。先创建一个房屋，再生成证据报告。'
       : 'No properties yet. Create a property to start an evidence report.';
   String get freePlan => isChinese
-      ? '免费版：1 个房屋，PDF 带水印。本地保存，不上传照片。'
-      : 'Free: 1 property, watermarked PDF. Local-only, no photo upload.';
+      ? '内测版：最多 2 个房屋，PDF 带水印。本地保存，不上传照片。'
+      : 'Beta: up to 2 properties, watermarked PDF. Local-only, no photo upload.';
   String get localOnly => isChinese ? '本地保存' : 'Local only';
   String get hashReady => isChinese ? '哈希留痕' : 'Hash trail';
   String get pdfEvidence => isChinese ? 'PDF 证据包' : 'PDF packet';
@@ -48,10 +48,10 @@ class AppStrings {
   String get signatureReady => isChinese ? '签名就绪' : 'Signature ready';
   String get exportReady => isChinese ? '可导出' : 'Export ready';
   String get proLimitTitle =>
-      isChinese ? '免费版房屋数量已满' : 'Free property limit reached';
+      isChinese ? '内测版房屋数量已满' : 'Beta property limit reached';
   String get proLimitMessage => isChinese
-      ? 'MVP 先预留 Pro 解锁。当前免费版支持 1 个房屋，用于验证核心报告体验。'
-      : 'Pro unlock is reserved for the MVP. The free version currently supports 1 property while we validate the core report flow.';
+      ? 'MVP 先预留 Pro 解锁。当前内测版支持 2 个房屋，用于验证多房屋和报告归档体验。'
+      : 'Pro unlock is reserved for the MVP. The beta currently supports 2 properties so we can validate multi-property reports.';
   String get addEvidence => isChinese ? '添加证据' : 'Add evidence';
   String get description => isChinese ? '问题描述或备注' : 'Description or note';
   String get saveNote => isChinese ? '保存备注' : 'Save note';
@@ -88,6 +88,25 @@ class AppStrings {
       : 'This report organizes property-condition records and is not legal advice. Verify requirements with local law and lease documents.';
   String get reportReady => isChinese ? '报告已生成' : 'Report ready';
   String get reports => isChinese ? '报告' : 'Reports';
+  String get propertiesTab => isChinese ? '房屋' : 'Homes';
+  String get inspectionTab => isChinese ? '检查' : 'Inspect';
+  String get reportsTab => isChinese ? '报告' : 'Reports';
+  String get moreTab => isChinese ? '更多' : 'More';
+  String get moreSubtitle => isChinese
+      ? '会员、隐私、支持与版本信息。'
+      : 'Membership, privacy, support, and app details.';
+  String get proTitle => isChinese ? 'UnitTrace Pro' : 'UnitTrace Pro';
+  String get proSubtitle => isChinese
+      ? '后续解锁多房屋、无水印 PDF、导出历史和对比报告。'
+      : 'Unlock more properties, watermark-free PDFs, export history, and comparison reports later.';
+  String get privacyPolicy => isChinese ? '隐私政策' : 'Privacy Policy';
+  String get support => isChinese ? '支持与反馈' : 'Support';
+  String get restorePurchases => isChinese ? '恢复购买' : 'Restore Purchases';
+  String get version => isChinese ? '版本' : 'Version';
+  String get comingSoon => isChinese ? '即将开放' : 'Coming soon';
+  String get linkPending =>
+      isChinese ? '上架前配置链接' : 'Link to be configured before release';
+  String get disclaimerTitle => isChinese ? '免责声明' : 'Disclaimer';
   String get reportHistory => isChinese ? '报告历史' : 'Report history';
   String get noReports => isChinese
       ? '还没有导出的报告。生成 PDF 后会出现在这里。'
