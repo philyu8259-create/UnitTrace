@@ -4,7 +4,7 @@ import 'package:unittrace/main.dart';
 import 'package:unittrace/src/data/in_memory_unittrace_store.dart';
 
 Future<void> tapCreateProperty(WidgetTester tester) async {
-  final button = find.widgetWithText(FilledButton, 'Create property').first;
+  final button = find.byTooltip('Create property').first;
   await tester.ensureVisible(button);
   await tester.tap(button);
   await tester.pumpAndSettle();
@@ -72,7 +72,7 @@ void main() {
     expect(find.text('Generate PDF report'), findsOneWidget);
     expect(find.text('Entry'), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Add evidence'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Add evidence').first);
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const Key('evidence-description-field')),
@@ -88,7 +88,9 @@ void main() {
     expect(evidence.single.description, 'Scratch near the entry door');
     expect(find.text('Scratch near the entry door'), findsOneWidget);
 
-    final addSignature = find.widgetWithText(FilledButton, 'Add signature');
+    final addSignature = find
+        .widgetWithText(FilledButton, 'Add signature')
+        .first;
     await tester.ensureVisible(addSignature);
     await tester.tap(addSignature);
     await tester.pumpAndSettle();
@@ -128,8 +130,8 @@ void main() {
       await tester.tap(find.text('Save property'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Inspect'));
-      await tester.pumpAndSettle();
+      await tester.tapAt(const Offset(170, 900));
+      await tester.pump(const Duration(milliseconds: 500));
       expect(find.text('No inspection workspace yet'), findsOneWidget);
       expect(find.textContaining('Oak Street Apt'), findsWidgets);
 
@@ -162,8 +164,7 @@ void main() {
     await tester.tap(find.text('Save property'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Create property').first);
-    await tester.pumpAndSettle();
+    await tapCreateProperty(tester);
     await tester.enterText(
       find.byKey(const Key('property-name-field')),
       'Pine Street Apt',
@@ -172,8 +173,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Pine Street Apt'), findsOneWidget);
 
-    await tester.tap(find.text('Create property').first);
-    await tester.pumpAndSettle();
+    await tapCreateProperty(tester);
     expect(find.text('Beta property limit reached'), findsOneWidget);
   });
 }

@@ -386,6 +386,7 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
                   strings: strings,
                   showClose: false,
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 104),
+                  onOpenInspection: () => setState(() => _mobileTabIndex = 1),
                 ),
                 _ => _MorePanel(
                   strings: strings,
@@ -646,6 +647,86 @@ class _MetricBadge extends StatelessWidget {
   }
 }
 
+class _GuidePanel extends StatelessWidget {
+  const _GuidePanel({
+    required this.title,
+    required this.subtitle,
+    required this.steps,
+  });
+
+  final String title;
+  final String subtitle;
+  final List<_GuideStepData> steps;
+
+  @override
+  Widget build(BuildContext context) {
+    return _PremiumSurface(
+      padding: const EdgeInsets.all(12),
+      backgroundColor: Colors.white,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SectionHeader(title: title, subtitle: subtitle),
+          const SizedBox(height: 12),
+          ...steps.indexed.map((entry) {
+            final index = entry.$1;
+            final step = entry.$2;
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: index == steps.length - 1 ? 0 : 10,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: _mist,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(step.icon, color: _deepEmerald, size: 18),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          step.title,
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          step.body,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+}
+
+class _GuideStepData {
+  const _GuideStepData({
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
+
+  final IconData icon;
+  final String title;
+  final String body;
+}
+
 class _WorkbenchBrandPanel extends StatelessWidget {
   const _WorkbenchBrandPanel({
     required this.strings,
@@ -698,6 +779,28 @@ class _WorkbenchBrandPanel extends StatelessWidget {
                 value: '$inspectionCount',
                 label: strings.inspectionsMetric,
                 icon: Icons.fact_check_outlined,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _GuidePanel(
+            title: strings.mainFlowTitle,
+            subtitle: strings.homeFlowSubtitle,
+            steps: [
+              _GuideStepData(
+                icon: Icons.apartment_outlined,
+                title: strings.stepProperty,
+                body: strings.stepPropertyBody,
+              ),
+              _GuideStepData(
+                icon: Icons.fact_check_outlined,
+                title: strings.stepInspection,
+                body: strings.stepInspectionBody,
+              ),
+              _GuideStepData(
+                icon: Icons.picture_as_pdf_outlined,
+                title: strings.stepReport,
+                body: strings.stepReportBody,
               ),
             ],
           ),
@@ -1328,6 +1431,28 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
             ],
           ),
         ),
+        const SizedBox(height: 12),
+        _GuidePanel(
+          title: widget.strings.inspectionGuideTitle,
+          subtitle: widget.strings.inspectionGuideSubtitle,
+          steps: [
+            _GuideStepData(
+              icon: Icons.meeting_room_outlined,
+              title: widget.strings.rooms,
+              body: widget.strings.stepInspectionBody,
+            ),
+            _GuideStepData(
+              icon: Icons.photo_library_outlined,
+              title: widget.strings.evidence,
+              body: widget.strings.emptyEvidenceSubtitle,
+            ),
+            _GuideStepData(
+              icon: Icons.picture_as_pdf_outlined,
+              title: widget.strings.stepReport,
+              body: widget.strings.stepReportBody,
+            ),
+          ],
+        ),
         const SizedBox(height: 18),
         _SectionHeader(
           title: widget.strings.rooms,
@@ -1374,15 +1499,27 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
         ),
         const SizedBox(height: 10),
         if (roomEvidence.isEmpty)
-          _PremiumSurface(
-            padding: const EdgeInsets.all(14),
-            child: Row(
-              children: [
-                const Icon(Icons.add_photo_alternate_outlined),
-                const SizedBox(width: 10),
-                Expanded(child: Text(widget.strings.addEvidence)),
-              ],
-            ),
+          _EmptyActionPanel(
+            icon: Icons.add_photo_alternate_outlined,
+            title: widget.strings.emptyEvidenceTitle,
+            subtitle: widget.strings.emptyEvidenceSubtitle,
+            actions: [
+              IconButton.filledTonal(
+                tooltip: widget.strings.takePhoto,
+                onPressed: () => _addEvidence(source: ImageSource.camera),
+                icon: const Icon(Icons.photo_camera_outlined),
+              ),
+              IconButton.filledTonal(
+                tooltip: widget.strings.choosePhoto,
+                onPressed: () => _addEvidence(source: ImageSource.gallery),
+                icon: const Icon(Icons.photo_library_outlined),
+              ),
+              FilledButton.icon(
+                onPressed: () => _addEvidence(source: null),
+                icon: const Icon(Icons.note_add_outlined),
+                label: Text(widget.strings.addEvidence),
+              ),
+            ],
           )
         else
           ...roomEvidence.map(
@@ -1394,13 +1531,27 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
           subtitle: widget.strings.signatureReady,
         ),
         const SizedBox(height: 10),
-        ..._signatures.map(
-          (signature) => ListTile(
-            leading: const Icon(Icons.verified_user_outlined),
-            title: Text(signature.signerName),
-            subtitle: Text(signature.signerRole),
+        if (_signatures.isEmpty)
+          _EmptyActionPanel(
+            icon: Icons.draw_outlined,
+            title: widget.strings.emptySignatureTitle,
+            subtitle: widget.strings.emptySignatureSubtitle,
+            actions: [
+              FilledButton.icon(
+                onPressed: _addSignature,
+                icon: const Icon(Icons.draw_outlined),
+                label: Text(widget.strings.addSignature),
+              ),
+            ],
+          )
+        else
+          ..._signatures.map(
+            (signature) => ListTile(
+              leading: const Icon(Icons.verified_user_outlined),
+              title: Text(signature.signerName),
+              subtitle: Text(signature.signerRole),
+            ),
           ),
-        ),
         if (_lastReport != null)
           _PremiumSurface(
             backgroundColor: _mist,
@@ -1435,6 +1586,69 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
             ),
           ),
       ],
+    );
+  }
+}
+
+class _EmptyActionPanel extends StatelessWidget {
+  const _EmptyActionPanel({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.actions,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final List<Widget> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    return _PremiumSurface(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: _mist,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: _deepEmerald, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (actions.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Wrap(spacing: 8, runSpacing: 8, children: actions),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -1476,12 +1690,14 @@ class _ReportHistoryPanel extends StatefulWidget {
     required this.padding,
     this.scrollController,
     this.showClose = false,
+    this.onOpenInspection,
   });
 
   final AppStrings strings;
   final EdgeInsetsGeometry padding;
   final ScrollController? scrollController;
   final bool showClose;
+  final VoidCallback? onOpenInspection;
 
   @override
   State<_ReportHistoryPanel> createState() => _ReportHistoryPanelState();
@@ -1525,14 +1741,18 @@ class _ReportHistoryPanelState extends State<_ReportHistoryPanel> {
             if (snapshot.connectionState == ConnectionState.waiting)
               const Center(child: CircularProgressIndicator())
             else if (reports.isEmpty)
-              _PremiumSurface(
-                child: Row(
-                  children: [
-                    const Icon(Icons.inventory_2_outlined, color: _deepEmerald),
-                    const SizedBox(width: 12),
-                    Expanded(child: Text(widget.strings.noReports)),
-                  ],
-                ),
+              _EmptyActionPanel(
+                icon: Icons.inventory_2_outlined,
+                title: widget.strings.reportsGuideTitle,
+                subtitle: widget.strings.reportsGuideSubtitle,
+                actions: [
+                  if (widget.onOpenInspection != null)
+                    FilledButton.icon(
+                      onPressed: widget.onOpenInspection,
+                      icon: const Icon(Icons.fact_check_outlined),
+                      label: Text(widget.strings.goToInspection),
+                    ),
+                ],
               )
             else
               ...reports.map(
@@ -1605,6 +1825,28 @@ class _MorePanel extends StatelessWidget {
       padding: padding,
       children: [
         _SectionHeader(title: strings.moreTab, subtitle: strings.moreSubtitle),
+        const SizedBox(height: 12),
+        _GuidePanel(
+          title: strings.moreGuideTitle,
+          subtitle: strings.moreGuideSubtitle,
+          steps: [
+            _GuideStepData(
+              icon: Icons.workspace_premium_outlined,
+              title: strings.proTitle,
+              body: strings.proSubtitle,
+            ),
+            _GuideStepData(
+              icon: Icons.privacy_tip_outlined,
+              title: strings.privacyPolicy,
+              body: strings.linkPending,
+            ),
+            _GuideStepData(
+              icon: Icons.support_agent_outlined,
+              title: strings.support,
+              body: strings.linkPending,
+            ),
+          ],
+        ),
         const SizedBox(height: 12),
         _PremiumSurface(
           backgroundColor: const Color(0xFFF8F2E8),
