@@ -25,7 +25,6 @@ void main() {
     expect(find.text('Create property'), findsAtLeastNWidgets(1));
 
     await tapCreateProperty(tester);
-
     await tester.enterText(
       find.byKey(const Key('property-name-field')),
       'Oak Street Apt',
@@ -36,7 +35,6 @@ void main() {
     );
     await tester.tap(find.text('Save property'));
     await tester.pumpAndSettle();
-
     expect(find.text('Oak Street Apt'), findsOneWidget);
     expect(find.text('Start inspection'), findsOneWidget);
   });

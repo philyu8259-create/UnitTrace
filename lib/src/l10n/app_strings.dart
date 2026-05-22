@@ -55,8 +55,22 @@ class AppStrings {
   String get addEvidence => isChinese ? '添加证据' : 'Add evidence';
   String get description => isChinese ? '问题描述或备注' : 'Description or note';
   String get saveNote => isChinese ? '保存备注' : 'Save note';
+  String get saveEvidence => isChinese ? '保存证据' : 'Save evidence';
   String get takePhoto => isChinese ? '拍照' : 'Camera';
   String get choosePhoto => isChinese ? '相册' : 'Gallery';
+  String photosAttached(int count) => isChinese
+      ? '已添加 $count 张照片'
+      : '$count photo${count == 1 ? '' : 's'} attached';
+  String photosHashReady(int count) => isChinese
+      ? '已复制到本机，并分别生成 SHA-256 哈希。'
+      : 'Copied locally with SHA-256 for each photo.';
+  String get photoFileMissing => isChinese
+      ? '照片文件缺失，仅保留原始哈希记录。'
+      : 'Photo file missing; original hash retained.';
+  String photoAccessFailed(String detail) =>
+      isChinese ? '无法添加照片：$detail' : 'Could not add photo: $detail';
+  String photoSaveFailed(String detail) =>
+      isChinese ? '照片保存失败：$detail' : 'Photo save failed: $detail';
   String get signatures => isChinese ? '签名' : 'Signatures';
   String get addSignature => isChinese ? '添加签名' : 'Add signature';
   String get signerName => isChinese ? '签名人姓名' : 'Signer name';

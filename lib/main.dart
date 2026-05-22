@@ -1,8 +1,8 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
@@ -36,17 +36,42 @@ Future<void> main() async {
   runApp(UnitTraceApp(store: store));
 }
 
+abstract class UnitTraceImagePicker {
+  Future<XFile?> pickImage({required ImageSource source, int? imageQuality});
+
+  Future<List<XFile>> pickMultiImage({int? imageQuality});
+}
+
+class DefaultUnitTraceImagePicker implements UnitTraceImagePicker {
+  DefaultUnitTraceImagePicker({ImagePicker? picker})
+    : _picker = picker ?? ImagePicker();
+
+  final ImagePicker _picker;
+
+  @override
+  Future<XFile?> pickImage({required ImageSource source, int? imageQuality}) {
+    return _picker.pickImage(source: source, imageQuality: imageQuality);
+  }
+
+  @override
+  Future<List<XFile>> pickMultiImage({int? imageQuality}) {
+    return _picker.pickMultiImage(imageQuality: imageQuality);
+  }
+}
+
 class UnitTraceApp extends StatelessWidget {
   const UnitTraceApp({
     super.key,
     required this.store,
     this.initialLocale,
     this.captureLocation = true,
+    this.imagePicker,
   });
 
   final UnitTraceStore store;
   final Locale? initialLocale;
   final bool captureLocation;
+  final UnitTraceImagePicker? imagePicker;
 
   @override
   Widget build(BuildContext context) {
@@ -150,7 +175,11 @@ class UnitTraceApp extends StatelessWidget {
           bodySmall: TextStyle(color: _mutedInk, letterSpacing: 0),
         ),
       ),
-      home: UnitTraceHome(store: store, captureLocation: captureLocation),
+      home: UnitTraceHome(
+        store: store,
+        captureLocation: captureLocation,
+        imagePicker: imagePicker ?? DefaultUnitTraceImagePicker(),
+      ),
     );
   }
 }
@@ -160,10 +189,12 @@ class UnitTraceHome extends StatefulWidget {
     super.key,
     required this.store,
     required this.captureLocation,
+    required this.imagePicker,
   });
 
   final UnitTraceStore store;
   final bool captureLocation;
+  final UnitTraceImagePicker imagePicker;
 
   @override
   State<UnitTraceHome> createState() => _UnitTraceHomeState();
@@ -321,6 +352,7 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
                     inspection: _selectedInspection!,
                     strings: strings,
                     captureLocation: widget.captureLocation,
+                    imagePicker: widget.imagePicker,
                   );
             if (!wide) {
               final hasWorkspace =
@@ -836,6 +868,7 @@ class InspectionWorkspace extends StatefulWidget {
     required this.inspection,
     required this.strings,
     required this.captureLocation,
+    required this.imagePicker,
   });
 
   final UnitTraceStore store;
@@ -843,6 +876,7 @@ class InspectionWorkspace extends StatefulWidget {
   final InspectionRecord inspection;
   final AppStrings strings;
   final bool captureLocation;
+  final UnitTraceImagePicker imagePicker;
 
   @override
   State<InspectionWorkspace> createState() => _InspectionWorkspaceState();
@@ -850,7 +884,6 @@ class InspectionWorkspace extends StatefulWidget {
 
 class _InspectionWorkspaceState extends State<InspectionWorkspace> {
   final _uuid = const Uuid();
-  final _picker = ImagePicker();
   List<RoomRecord> _rooms = [];
   List<EvidenceItemRecord> _evidence = [];
   List<SignatureRecord> _signatures = [];
@@ -881,31 +914,24 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
   Future<void> _addEvidence({required ImageSource? source}) async {
     final room = _selectedRoom;
     if (room == null) return;
+    var pickedPhotos = const <_PickedEvidencePhoto>[];
+    if (source != null) {
+      pickedPhotos = await _pickEvidencePhotos(source);
+      if (pickedPhotos.isEmpty) {
+        return;
+      }
+    }
+    if (!mounted) return;
     final result = await showModalBottomSheet<_EvidenceDraft>(
       context: context,
       isScrollControlled: true,
-      builder: (context) => _EvidenceSheet(strings: widget.strings),
+      builder: (context) => _EvidenceSheet(
+        strings: widget.strings,
+        photos: pickedPhotos,
+        source: source,
+      ),
     );
     if (result == null) return;
-
-    String? photoPath;
-    String? photoHash;
-    String? exifSummary;
-    if (source != null) {
-      final image = await _picker.pickImage(source: source, imageQuality: 88);
-      if (image != null) {
-        final directory = await getApplicationDocumentsDirectory();
-        final evidenceDirectory = Directory(p.join(directory.path, 'evidence'));
-        await evidenceDirectory.create(recursive: true);
-        photoPath = p.join(
-          evidenceDirectory.path,
-          '${_uuid.v4()}${p.extension(image.path)}',
-        );
-        await File(image.path).copy(photoPath);
-        photoHash = await HashService.sha256ForFile(File(photoPath));
-        exifSummary = 'Source: ${source.name}; File: ${p.basename(photoPath)}';
-      }
-    }
 
     Position? position;
     if (widget.captureLocation) {
@@ -919,21 +945,86 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
       }
     }
 
-    final evidence = EvidenceItemRecord(
-      id: _uuid.v4(),
-      inspectionId: widget.inspection.id,
-      roomId: room.id,
-      description: result.description,
-      severity: result.severity,
-      capturedAt: DateTime.now().toUtc(),
-      photoPath: photoPath,
-      photoHash: photoHash,
-      latitude: position?.latitude,
-      longitude: position?.longitude,
-      exifSummary: exifSummary,
-    );
-    await widget.store.saveEvidence(evidence);
+    final capturedAt = DateTime.now().toUtc();
+    final List<_PickedEvidencePhoto?> photosToSave = pickedPhotos.isEmpty
+        ? const <_PickedEvidencePhoto?>[null]
+        : pickedPhotos;
+    for (final photo in photosToSave) {
+      final evidence = EvidenceItemRecord(
+        id: _uuid.v4(),
+        inspectionId: widget.inspection.id,
+        roomId: room.id,
+        description: result.description,
+        severity: result.severity,
+        capturedAt: capturedAt,
+        photoPath: photo?.photoPath,
+        photoHash: photo?.photoHash,
+        latitude: position?.latitude,
+        longitude: position?.longitude,
+        exifSummary: photo?.exifSummary,
+      );
+      await widget.store.saveEvidence(evidence);
+    }
     await _load();
+  }
+
+  Future<List<_PickedEvidencePhoto>> _pickEvidencePhotos(
+    ImageSource source,
+  ) async {
+    try {
+      final List<XFile> images;
+      if (source == ImageSource.gallery) {
+        images = await widget.imagePicker.pickMultiImage(imageQuality: 88);
+      } else {
+        final image = await widget.imagePicker.pickImage(
+          source: source,
+          imageQuality: 88,
+        );
+        images = image == null ? const [] : [image];
+      }
+      if (images.isEmpty) return const [];
+
+      final directory = await getApplicationDocumentsDirectory();
+      final evidenceDirectory = Directory(p.join(directory.path, 'evidence'));
+      await evidenceDirectory.create(recursive: true);
+      final photos = <_PickedEvidencePhoto>[];
+      for (final image in images) {
+        final extension = p.extension(image.path).isEmpty
+            ? '.jpg'
+            : p.extension(image.path);
+        final photoPath = p.join(
+          evidenceDirectory.path,
+          '${_uuid.v4()}$extension',
+        );
+        await File(image.path).copy(photoPath);
+        final photoHash = await HashService.sha256ForFile(File(photoPath));
+        photos.add(
+          _PickedEvidencePhoto(
+            photoPath: photoPath,
+            photoHash: photoHash,
+            exifSummary:
+                'Source: ${source.name}; File: ${p.basename(photoPath)}',
+          ),
+        );
+      }
+      return photos;
+    } on PlatformException catch (error) {
+      if (!mounted) return const [];
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            widget.strings.photoAccessFailed(error.message ?? error.code),
+          ),
+        ),
+      );
+      return const [];
+    } on FileSystemException catch (error) {
+      if (!mounted) return const [];
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(widget.strings.photoSaveFailed(error.message))),
+      );
+      return const [];
+    }
   }
 
   Future<void> _addSignature() async {
@@ -1314,6 +1405,8 @@ class _EvidenceCard extends StatelessWidget {
         : item.severity == EvidenceSeverity.issue
         ? _brass
         : _deepEmerald;
+    final photoFile = item.photoPath == null ? null : File(item.photoPath!);
+    final hasPhotoFile = photoFile?.existsSync() ?? false;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: _PremiumSurface(
@@ -1321,11 +1414,11 @@ class _EvidenceCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (item.photoPath != null)
+            if (hasPhotoFile)
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Image.file(
-                  File(item.photoPath!),
+                  photoFile!,
                   width: 96,
                   height: 72,
                   fit: BoxFit.cover,
@@ -1340,7 +1433,12 @@ class _EvidenceCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: const Color(0xFFD5E1DC)),
                 ),
-                child: const Icon(Icons.note_alt_outlined, color: _deepEmerald),
+                child: Icon(
+                  item.photoPath == null
+                      ? Icons.note_alt_outlined
+                      : Icons.broken_image_outlined,
+                  color: _deepEmerald,
+                ),
               ),
             const SizedBox(width: 12),
             Expanded(
@@ -1381,7 +1479,9 @@ class _EvidenceCard extends StatelessWidget {
                   ),
                   if (item.photoHash != null)
                     Text(
-                      'SHA-256 ${item.photoHash!.substring(0, 12)}...',
+                      hasPhotoFile
+                          ? 'SHA-256 ${item.photoHash!.substring(0, 12)}...'
+                          : strings.photoFileMissing,
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   if (item.latitude != null && item.longitude != null)
@@ -1479,10 +1579,28 @@ class _EvidenceDraft {
   final EvidenceSeverity severity;
 }
 
+class _PickedEvidencePhoto {
+  const _PickedEvidencePhoto({
+    required this.photoPath,
+    required this.photoHash,
+    required this.exifSummary,
+  });
+
+  final String photoPath;
+  final String photoHash;
+  final String exifSummary;
+}
+
 class _EvidenceSheet extends StatefulWidget {
-  const _EvidenceSheet({required this.strings});
+  const _EvidenceSheet({
+    required this.strings,
+    required this.photos,
+    this.source,
+  });
 
   final AppStrings strings;
+  final List<_PickedEvidencePhoto> photos;
+  final ImageSource? source;
 
   @override
   State<_EvidenceSheet> createState() => _EvidenceSheetState();
@@ -1500,6 +1618,7 @@ class _EvidenceSheetState extends State<_EvidenceSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final photos = widget.photos;
     return SafeArea(
       child: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
@@ -1517,10 +1636,52 @@ class _EvidenceSheetState extends State<_EvidenceSheet> {
               subtitle: widget.strings.hashReady,
             ),
             const SizedBox(height: 12),
-            const _HeroImage(
-              asset: 'assets/images/evidence_capture.png',
-              height: 120,
-            ),
+            if (photos.isEmpty)
+              const _HeroImage(
+                asset: 'assets/images/evidence_capture.png',
+                height: 120,
+              )
+            else
+              _PremiumSurface(
+                padding: const EdgeInsets.all(10),
+                backgroundColor: Colors.white,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      height: 76,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: photos.length,
+                        separatorBuilder: (_, _) => const SizedBox(width: 8),
+                        itemBuilder: (context, index) {
+                          return ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.file(
+                              File(photos[index].photoPath),
+                              width: 96,
+                              height: 72,
+                              fit: BoxFit.cover,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      widget.strings.photosAttached(photos.length),
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      widget.strings.photosHashReady(photos.length),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 12),
             TextField(
               key: const Key('evidence-description-field'),
@@ -1554,7 +1715,11 @@ class _EvidenceSheetState extends State<_EvidenceSheet> {
                   severity: _severity,
                 ),
               ),
-              child: Text(widget.strings.saveNote),
+              child: Text(
+                photos.isEmpty
+                    ? widget.strings.saveNote
+                    : widget.strings.saveEvidence,
+              ),
             ),
           ],
         ),
