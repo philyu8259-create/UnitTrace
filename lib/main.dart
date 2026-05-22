@@ -591,26 +591,32 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.property.name,
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  Text(
-                    '${_typeLabel(widget.strings, widget.inspection.type)} | ${widget.property.address}',
-                  ),
-                ],
-              ),
+            Text(
+              widget.property.name,
+              style: Theme.of(context).textTheme.headlineSmall,
             ),
-            FilledButton.icon(
-              onPressed: _exportReport,
-              icon: const Icon(Icons.picture_as_pdf_outlined),
-              label: Text(widget.strings.generateReport),
+            Text(
+              '${_typeLabel(widget.strings, widget.inspection.type)} | ${widget.property.address}',
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 10,
+              runSpacing: 8,
+              children: [
+                FilledButton.icon(
+                  onPressed: _exportReport,
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  label: Text(widget.strings.generateReport),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: _addSignature,
+                  icon: const Icon(Icons.draw_outlined),
+                  label: Text(widget.strings.addSignature),
+                ),
+              ],
             ),
           ],
         ),
@@ -676,11 +682,6 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
                 widget.strings.signatures,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
-            ),
-            FilledButton.tonalIcon(
-              onPressed: _addSignature,
-              icon: const Icon(Icons.draw_outlined),
-              label: Text(widget.strings.addSignature),
             ),
           ],
         ),

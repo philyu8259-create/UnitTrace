@@ -179,16 +179,7 @@ class ReportExporter {
           ),
           pw.SizedBox(height: 8),
           ...manifest.signatures.map(
-            (signature) => pw.Container(
-              margin: const pw.EdgeInsets.only(bottom: 10),
-              padding: const pw.EdgeInsets.all(10),
-              decoration: pw.BoxDecoration(
-                border: pw.Border.all(color: PdfColors.grey300),
-              ),
-              child: pw.Text(
-                '${signature.signerRole}: ${signature.signerName} | ${dateFormat.format(signature.signedAt.toLocal())}',
-              ),
-            ),
+            (signature) => _signatureBlock(signature, dateFormat),
           ),
           pw.SizedBox(height: 12),
           pw.Text(
@@ -211,6 +202,63 @@ class ReportExporter {
     );
 
     return doc.save();
+  }
+
+  pw.Widget _signatureBlock(
+    SignatureRecord signature,
+    DateFormat dateFormat,
+  ) {
+    pw.Widget? signatureImage;
+    if (signature.signaturePath != null) {
+      final signatureFile = File(signature.signaturePath!);
+      if (signatureFile.existsSync()) {
+        try {
+          final bytes = signatureFile.readAsBytesSync();
+          if (bytes.isNotEmpty) {
+            signatureImage = pw.Container(
+              height: 54,
+              alignment: pw.Alignment.centerLeft,
+              margin: const pw.EdgeInsets.only(top: 8),
+              child: pw.Image(
+                pw.MemoryImage(bytes),
+                height: 50,
+                fit: pw.BoxFit.contain,
+              ),
+            );
+          }
+        } on Object {
+          signatureImage = null;
+        }
+      }
+    }
+
+    return pw.Container(
+      margin: const pw.EdgeInsets.only(bottom: 10),
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.grey300),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(
+            '${signature.signerRole}: ${signature.signerName} | ${dateFormat.format(signature.signedAt.toLocal())}',
+          ),
+          ?signatureImage,
+          if (signature.signatureHash != null)
+            pw.Padding(
+              padding: const pw.EdgeInsets.only(top: 6),
+              child: pw.Text(
+                'Signature SHA-256: ${signature.signatureHash}',
+                style: const pw.TextStyle(
+                  fontSize: 8,
+                  color: PdfColors.grey600,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   pw.Widget _evidenceBlock(EvidenceItemRecord item, DateFormat dateFormat) {

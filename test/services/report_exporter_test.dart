@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:unittrace/src/domain/entities.dart';
@@ -58,5 +59,76 @@ void main() {
 
     expect(ascii.decode(bytes.take(4).toList()), '%PDF');
     expect(bytes.length, greaterThan(100000));
+  });
+
+  test('embeds signature image bytes when a saved signature exists', () async {
+    final signatureFile = File('assets/images/report_cover.png');
+    expect(signatureFile.existsSync(), isTrue);
+
+    final property = PropertyRecord(
+      id: 'property-signature',
+      name: 'Oak Street Apt',
+      address: '12 Oak Street',
+      createdAt: DateTime.utc(2026, 5, 1),
+    );
+    final inspection = InspectionRecord(
+      id: 'inspection-signature',
+      propertyId: property.id,
+      type: InspectionType.moveIn,
+      languageCode: 'en',
+      createdAt: DateTime.utc(2026, 5, 2),
+    );
+    final room = RoomRecord(
+      id: 'room-signature',
+      inspectionId: inspection.id,
+      name: 'Entry',
+      sortOrder: 0,
+    );
+    final signature = SignatureRecord(
+      id: 'signature-tenant',
+      inspectionId: inspection.id,
+      signerRole: 'Tenant',
+      signerName: 'Alex Tenant',
+      signedAt: DateTime.utc(2026, 5, 2, 13),
+      signaturePath: signatureFile.path,
+      signatureHash: HashService.sha256ForBytes(
+        await signatureFile.readAsBytes(),
+      ),
+    );
+    final unsignedManifest = ReportManifestBuilder().build(
+      property: property,
+      inspection: inspection,
+      rooms: [room],
+      evidenceItems: const [],
+      signatures: const [],
+      generatedAt: DateTime.utc(2026, 5, 2, 13),
+      appVersion: '1.0.0',
+      deviceLabel: 'test-device',
+    );
+    final signedManifest = ReportManifestBuilder().build(
+      property: property,
+      inspection: inspection,
+      rooms: [room],
+      evidenceItems: const [],
+      signatures: [signature],
+      generatedAt: DateTime.utc(2026, 5, 2, 13),
+      appVersion: '1.0.0',
+      deviceLabel: 'test-device',
+    );
+
+    final exporter = ReportExporter();
+    final unsignedBytes = await exporter.buildPdfBytes(
+      manifest: unsignedManifest,
+      strings: AppStrings.forLanguageCode('en'),
+      watermarked: true,
+    );
+    final signedBytes = await exporter.buildPdfBytes(
+      manifest: signedManifest,
+      strings: AppStrings.forLanguageCode('en'),
+      watermarked: true,
+    );
+
+    expect(ascii.decode(signedBytes.take(4).toList()), '%PDF');
+    expect(signedBytes.length, greaterThan(unsignedBytes.length));
   });
 }
