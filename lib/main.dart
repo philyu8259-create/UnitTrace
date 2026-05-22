@@ -352,11 +352,16 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
               }),
               onStartInspection: _startInspection,
             );
-            final content =
-                _selectedProperty == null || _selectedInspection == null
+            final content = _selectedProperty == null
                 ? _EmptyDashboard(
                     strings: strings,
                     onCreateProperty: _createProperty,
+                  )
+                : _selectedInspection == null
+                ? _NoInspectionPanel(
+                    strings: strings,
+                    property: _selectedProperty!,
+                    onStartInspection: _startInspection,
                   )
                 : InspectionWorkspace(
                     key: ValueKey(_selectedInspection!.id),
@@ -934,6 +939,91 @@ class _EmptyDashboard extends StatelessWidget {
                 onPressed: onCreateProperty,
                 icon: const Icon(Icons.add_home_work_outlined),
                 label: Text(strings.createProperty),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NoInspectionPanel extends StatelessWidget {
+  const _NoInspectionPanel({
+    required this.strings,
+    required this.property,
+    required this.onStartInspection,
+  });
+
+  final AppStrings strings;
+  final PropertyRecord property;
+  final ValueChanged<InspectionType> onStartInspection;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 620),
+        child: _PremiumSurface(
+          padding: const EdgeInsets.all(18),
+          backgroundColor: const Color(0xFFF8F2E8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _HeroImage(
+                asset: 'assets/images/evidence_capture.png',
+                height: 190,
+              ),
+              const SizedBox(height: 18),
+              Text(
+                strings.noActiveInspectionTitle,
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                strings.noActiveInspectionSubtitle(property.name),
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _TrustPill(
+                    icon: Icons.photo_camera_outlined,
+                    label: strings.evidence,
+                  ),
+                  _TrustPill(
+                    icon: Icons.draw_outlined,
+                    label: strings.signatures,
+                  ),
+                  _TrustPill(
+                    icon: Icons.picture_as_pdf_outlined,
+                    label: strings.pdfEvidence,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  FilledButton.icon(
+                    onPressed: () => onStartInspection(InspectionType.moveIn),
+                    icon: const Icon(Icons.login),
+                    label: Text(strings.moveIn),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => onStartInspection(InspectionType.moveOut),
+                    icon: const Icon(Icons.logout),
+                    label: Text(strings.moveOut),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => onStartInspection(InspectionType.general),
+                    icon: const Icon(Icons.fact_check_outlined),
+                    label: Text(strings.generalInspection),
+                  ),
+                ],
               ),
             ],
           ),

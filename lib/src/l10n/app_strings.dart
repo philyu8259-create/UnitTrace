@@ -26,6 +26,11 @@ class AppStrings {
   String get propertyName => isChinese ? '房屋名称' : 'Property name';
   String get address => isChinese ? '地址' : 'Address';
   String get startInspection => isChinese ? '开始检查' : 'Start inspection';
+  String get noActiveInspectionTitle =>
+      isChinese ? '还没有检查工作区' : 'No inspection workspace yet';
+  String noActiveInspectionSubtitle(String propertyName) => isChinese
+      ? '为 $propertyName 创建入住、退租或普通检查后，就可以添加照片、备注、位置、签名，并生成 PDF 证据包。'
+      : 'Create a move-in, move-out, or general inspection for $propertyName to add photos, notes, location, signatures, and a PDF evidence packet.';
   String get moveIn => isChinese ? '入住检查' : 'Move-in';
   String get moveOut => isChinese ? '退租检查' : 'Move-out';
   String get generalInspection => isChinese ? '普通检查' : 'General';

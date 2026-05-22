@@ -62,8 +62,9 @@ void main() {
     await tester.tap(find.text('Save property'));
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.text('Move-in'));
-    await tester.tap(find.text('Move-in'));
+    final moveIn = find.text('Move-in').first;
+    await tester.ensureVisible(moveIn);
+    await tester.tap(moveIn);
     await tester.pumpAndSettle();
     for (var i = 0; i < 10 && (await store.loadInspections()).isEmpty; i++) {
       await tester.pump(const Duration(milliseconds: 100));
@@ -96,6 +97,52 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Alex Tenant'), findsOneWidget);
   });
+
+  testWidgets(
+    'mobile inspect tab starts an inspection for the selected property',
+    (tester) async {
+      tester.view.physicalSize = const Size(440, 956);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final store = InMemoryUnitTraceStore();
+      await tester.pumpWidget(
+        UnitTraceApp(
+          store: store,
+          initialLocale: const Locale('en'),
+          captureLocation: false,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tapCreateProperty(tester);
+      await tester.enterText(
+        find.byKey(const Key('property-name-field')),
+        'Oak Street Apt',
+      );
+      await tester.enterText(
+        find.byKey(const Key('property-address-field')),
+        '12 Oak Street',
+      );
+      await tester.tap(find.text('Save property'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Inspect'));
+      await tester.pumpAndSettle();
+      expect(find.text('No inspection workspace yet'), findsOneWidget);
+      expect(find.textContaining('Oak Street Apt'), findsWidgets);
+
+      await tester.tap(find.text('Move-in'));
+      await tester.pumpAndSettle();
+      for (var i = 0; i < 10 && (await store.loadInspections()).isEmpty; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+
+      expect(find.text('Generate PDF report'), findsOneWidget);
+      expect(find.text('Entry'), findsOneWidget);
+    },
+  );
 
   testWidgets('beta allows two properties and blocks a third', (tester) async {
     await tester.pumpWidget(
