@@ -732,11 +732,13 @@ class _WorkbenchBrandPanel extends StatelessWidget {
     required this.strings,
     required this.propertyCount,
     required this.inspectionCount,
+    this.actionSlot,
   });
 
   final AppStrings strings;
   final int propertyCount;
   final int inspectionCount;
+  final Widget? actionSlot;
 
   @override
   Widget build(BuildContext context) {
@@ -782,6 +784,7 @@ class _WorkbenchBrandPanel extends StatelessWidget {
               ),
             ],
           ),
+          if (actionSlot != null) ...[const SizedBox(height: 14), actionSlot!],
           const SizedBox(height: 14),
           _GuidePanel(
             title: strings.mainFlowTitle,
@@ -840,6 +843,23 @@ class _DashboardSidebar extends StatelessWidget {
     final propertyInspections = inspections
         .where((item) => item.propertyId == selectedProperty?.id)
         .toList();
+    final actionRow = Row(
+      children: [
+        Expanded(
+          child: FilledButton.icon(
+            onPressed: onCreateProperty,
+            icon: const Icon(Icons.add_home_work_outlined),
+            label: Text(strings.createProperty),
+          ),
+        ),
+        const SizedBox(width: 10),
+        IconButton.outlined(
+          tooltip: strings.reportHistory,
+          onPressed: onOpenReportHistory,
+          icon: const Icon(Icons.folder_copy_outlined),
+        ),
+      ],
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -847,24 +867,7 @@ class _DashboardSidebar extends StatelessWidget {
           strings: strings,
           propertyCount: properties.length,
           inspectionCount: inspections.length,
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: FilledButton.icon(
-                onPressed: onCreateProperty,
-                icon: const Icon(Icons.add_home_work_outlined),
-                label: Text(strings.createProperty),
-              ),
-            ),
-            const SizedBox(width: 10),
-            IconButton.outlined(
-              tooltip: strings.reportHistory,
-              onPressed: onOpenReportHistory,
-              icon: const Icon(Icons.folder_copy_outlined),
-            ),
-          ],
+          actionSlot: actionRow,
         ),
         if (properties.isNotEmpty) const SizedBox(height: 16),
         ...properties.map(
@@ -1258,7 +1261,14 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
         );
         images = image == null ? const [] : [image];
       }
-      if (images.isEmpty) return const [];
+      if (images.isEmpty) {
+        if (source == ImageSource.camera && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(widget.strings.noPhotoCaptured)),
+          );
+        }
+        return const [];
+      }
 
       final directory = await getApplicationDocumentsDirectory();
       final evidenceDirectory = Directory(p.join(directory.path, 'evidence'));

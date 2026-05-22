@@ -91,6 +91,9 @@ class AppStrings {
   String get saveEvidence => isChinese ? '保存证据' : 'Save evidence';
   String get takePhoto => isChinese ? '拍照' : 'Camera';
   String get choosePhoto => isChinese ? '相册' : 'Gallery';
+  String get noPhotoCaptured => isChinese
+      ? '没有拍到照片。请确认相机可用并已授权。'
+      : 'No photo captured. Confirm camera access is available and allowed.';
   String photosAttached(int count) => isChinese
       ? '已添加 $count 张照片'
       : '$count photo${count == 1 ? '' : 's'} attached';

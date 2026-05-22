@@ -1,7 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:unittrace/main.dart';
 import 'package:unittrace/src/data/in_memory_unittrace_store.dart';
+
+class EmptyCameraPicker implements UnitTraceImagePicker {
+  @override
+  Future<XFile?> pickImage({
+    required ImageSource source,
+    int? imageQuality,
+  }) async {
+    return null;
+  }
+
+  @override
+  Future<List<XFile>> pickMultiImage({int? imageQuality}) async {
+    return const [];
+  }
+}
 
 Future<void> tapCreateProperty(WidgetTester tester) async {
   final button = find.byTooltip('Create property').first;
@@ -145,6 +161,53 @@ void main() {
       expect(find.text('Entry'), findsOneWidget);
     },
   );
+
+  testWidgets('camera empty result shows a clear capture message', (
+    tester,
+  ) async {
+    final store = InMemoryUnitTraceStore();
+    await tester.pumpWidget(
+      UnitTraceApp(
+        store: store,
+        initialLocale: const Locale('en'),
+        captureLocation: false,
+        imagePicker: EmptyCameraPicker(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tapCreateProperty(tester);
+    await tester.enterText(
+      find.byKey(const Key('property-name-field')),
+      'Oak Street Apt',
+    );
+    await tester.enterText(
+      find.byKey(const Key('property-address-field')),
+      '12 Oak Street',
+    );
+    await tester.tap(find.text('Save property'));
+    await tester.pumpAndSettle();
+
+    final moveIn = find.text('Move-in').first;
+    await tester.ensureVisible(moveIn);
+    await tester.tap(moveIn);
+    await tester.pumpAndSettle();
+    for (var i = 0; i < 10 && (await store.loadInspections()).isEmpty; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    final cameraButton = find.byTooltip('Camera').first;
+    await tester.ensureVisible(cameraButton);
+    await tester.tap(cameraButton);
+    await tester.pump();
+
+    expect(
+      find.text(
+        'No photo captured. Confirm camera access is available and allowed.',
+      ),
+      findsOneWidget,
+    );
+  });
 
   testWidgets('beta allows two properties and blocks a third', (tester) async {
     await tester.pumpWidget(
