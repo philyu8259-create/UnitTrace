@@ -61,6 +61,14 @@ class AppStrings {
       ? '本报告用于整理房况记录，不构成法律建议。请根据所在地法规和正式租赁文件核验。'
       : 'This report organizes property-condition records and is not legal advice. Verify requirements with local law and lease documents.';
   String get reportReady => isChinese ? '报告已生成' : 'Report ready';
+  String get reports => isChinese ? '报告' : 'Reports';
+  String get reportHistory => isChinese ? '报告历史' : 'Report history';
+  String get noReports => isChinese
+      ? '还没有导出的报告。生成 PDF 后会出现在这里。'
+      : 'No exported reports yet. Generated PDFs will appear here.';
+  String get viewReport => isChinese ? '查看' : 'View';
+  String get shareReportAction => isChinese ? '分享' : 'Share';
+  String get pdfPreview => isChinese ? 'PDF 预览' : 'PDF preview';
   String get ok => isChinese ? '确定' : 'OK';
   String get cancel => isChinese ? '取消' : 'Cancel';
   String get good => isChinese ? '良好' : 'Good';

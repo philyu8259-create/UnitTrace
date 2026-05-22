@@ -17,6 +17,7 @@ import 'src/domain/entities.dart';
 import 'src/domain/room_templates.dart';
 import 'src/l10n/app_strings.dart';
 import 'src/services/hash_service.dart';
+import 'src/services/report_archive.dart';
 import 'src/services/report_exporter.dart';
 
 Future<void> main() async {
@@ -168,6 +169,14 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
     await _reload();
   }
 
+  Future<void> _openReportHistory() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => _ReportHistorySheet(strings: strings),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -182,6 +191,11 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
             onPressed: _createProperty,
             icon: const Icon(Icons.add_home_work_outlined),
           ),
+          IconButton(
+            tooltip: strings.reportHistory,
+            onPressed: _openReportHistory,
+            icon: const Icon(Icons.folder_copy_outlined),
+          ),
         ],
       ),
       body: SafeArea(
@@ -195,6 +209,7 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
               inspections: _inspections,
               selectedInspection: _selectedInspection,
               onCreateProperty: _createProperty,
+              onOpenReportHistory: _openReportHistory,
               onSelectProperty: (property) => setState(() {
                 _selectedProperty = property;
                 _selectedInspection = _inspections
@@ -262,6 +277,7 @@ class _DashboardSidebar extends StatelessWidget {
     required this.onSelectProperty,
     required this.onSelectInspection,
     required this.onStartInspection,
+    required this.onOpenReportHistory,
   });
 
   final AppStrings strings;
@@ -273,6 +289,7 @@ class _DashboardSidebar extends StatelessWidget {
   final ValueChanged<PropertyRecord> onSelectProperty;
   final ValueChanged<InspectionRecord> onSelectInspection;
   final ValueChanged<InspectionType> onStartInspection;
+  final VoidCallback onOpenReportHistory;
 
   @override
   Widget build(BuildContext context) {
@@ -293,6 +310,12 @@ class _DashboardSidebar extends StatelessWidget {
           onPressed: onCreateProperty,
           icon: const Icon(Icons.add),
           label: Text(strings.createProperty),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: onOpenReportHistory,
+          icon: const Icon(Icons.folder_copy_outlined),
+          label: Text(strings.reportHistory),
         ),
         const SizedBox(height: 16),
         ...properties.map(
@@ -676,9 +699,128 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
               leading: const Icon(Icons.check_circle_outline),
               title: Text(widget.strings.reportReady),
               subtitle: Text(_lastReport!.pdfFile.path),
+              trailing: Wrap(
+                spacing: 4,
+                children: [
+                  IconButton(
+                    tooltip: widget.strings.viewReport,
+                    onPressed: () => _openPdfPreview(
+                      context,
+                      widget.strings,
+                      _lastReport!.pdfFile,
+                    ),
+                    icon: const Icon(Icons.visibility_outlined),
+                  ),
+                  IconButton(
+                    tooltip: widget.strings.shareReportAction,
+                    onPressed: () => _sharePdf(_lastReport!.pdfFile),
+                    icon: const Icon(Icons.ios_share_outlined),
+                  ),
+                ],
+              ),
             ),
           ),
       ],
+    );
+  }
+}
+
+class _ReportHistorySheet extends StatefulWidget {
+  const _ReportHistorySheet({required this.strings});
+
+  final AppStrings strings;
+
+  @override
+  State<_ReportHistorySheet> createState() => _ReportHistorySheetState();
+}
+
+class _ReportHistorySheetState extends State<_ReportHistorySheet> {
+  late final Future<List<ReportArchiveEntry>> _reportsFuture = _loadReports();
+
+  Future<List<ReportArchiveEntry>> _loadReports() async {
+    final directory = await ReportExporter.reportsDirectory();
+    return ReportArchive().scanDirectory(directory);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.75,
+        minChildSize: 0.45,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) {
+          return FutureBuilder<List<ReportArchiveEntry>>(
+            future: _reportsFuture,
+            builder: (context, snapshot) {
+              final reports = snapshot.data ?? const <ReportArchiveEntry>[];
+              return ListView(
+                controller: scrollController,
+                padding: const EdgeInsets.all(20),
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          widget.strings.reportHistory,
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: widget.strings.cancel,
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  if (snapshot.connectionState == ConnectionState.waiting)
+                    const Center(child: CircularProgressIndicator())
+                  else if (reports.isEmpty)
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(18),
+                        child: Text(widget.strings.noReports),
+                      ),
+                    )
+                  else
+                    ...reports.map(
+                      (report) => Card(
+                        child: ListTile(
+                          leading: const Icon(Icons.picture_as_pdf_outlined),
+                          title: Text(report.propertyName),
+                          subtitle: Text(
+                            '${report.reportId} | ${report.photoCount} ${widget.strings.evidence.toLowerCase()} | ${_shortHash(report.manifestHash)}',
+                          ),
+                          trailing: Wrap(
+                            spacing: 2,
+                            children: [
+                              IconButton(
+                                tooltip: widget.strings.viewReport,
+                                onPressed: () => _openPdfPreview(
+                                  context,
+                                  widget.strings,
+                                  report.pdfFile,
+                                ),
+                                icon: const Icon(Icons.visibility_outlined),
+                              ),
+                              IconButton(
+                                tooltip: widget.strings.shareReportAction,
+                                onPressed: () => _sharePdf(report.pdfFile),
+                                icon: const Icon(Icons.ios_share_outlined),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }
@@ -1026,6 +1168,49 @@ class _SignatureDialogState extends State<_SignatureDialog> {
   }
 }
 
+Future<void> _sharePdf(File pdfFile) async {
+  await Printing.sharePdf(
+    bytes: await pdfFile.readAsBytes(),
+    filename: p.basename(pdfFile.path),
+  );
+}
+
+Future<void> _openPdfPreview(
+  BuildContext context,
+  AppStrings strings,
+  File pdfFile,
+) async {
+  await showDialog<void>(
+    context: context,
+    builder: (context) => Dialog.fullscreen(
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(strings.pdfPreview),
+          actions: [
+            IconButton(
+              tooltip: strings.shareReportAction,
+              onPressed: () => _sharePdf(pdfFile),
+              icon: const Icon(Icons.ios_share_outlined),
+            ),
+            IconButton(
+              tooltip: strings.cancel,
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.close),
+            ),
+          ],
+        ),
+        body: PdfPreview(
+          canChangeOrientation: false,
+          canChangePageFormat: false,
+          allowPrinting: false,
+          allowSharing: false,
+          build: (_) => pdfFile.readAsBytes(),
+        ),
+      ),
+    ),
+  );
+}
+
 Future<Position?> _currentPosition() async {
   var permission = await Geolocator.checkPermission();
   if (permission == LocationPermission.denied) {
@@ -1038,6 +1223,13 @@ Future<Position?> _currentPosition() async {
   return Geolocator.getCurrentPosition(
     locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
   );
+}
+
+String _shortHash(String hash) {
+  if (hash.length <= 12) {
+    return hash;
+  }
+  return hash.substring(0, 12);
 }
 
 String _typeLabel(AppStrings strings, InspectionType type) {

@@ -50,8 +50,7 @@ class ReportExporter {
       strings: strings,
       watermarked: watermarked,
     );
-    final directory = await getApplicationDocumentsDirectory();
-    final reportDirectory = Directory(p.join(directory.path, 'reports'));
+    final reportDirectory = await reportsDirectory();
     await reportDirectory.create(recursive: true);
     final baseName =
         '${manifest.reportId}-${DateFormat('yyyyMMdd-HHmmss').format(DateTime.now())}';
@@ -67,6 +66,11 @@ class ReportExporter {
       manifestFile: manifestFile,
       manifest: manifest,
     );
+  }
+
+  static Future<Directory> reportsDirectory() async {
+    final directory = await getApplicationDocumentsDirectory();
+    return Directory(p.join(directory.path, 'reports'));
   }
 
   Future<Uint8List> buildPdfBytes({
