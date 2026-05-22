@@ -1,17 +1,21 @@
-# unittrace
+# UnitTrace / 房况留证
 
-A new Flutter project.
+Offline-first rental condition evidence reports for iOS and Android.
 
-## Getting Started
+## MVP
 
-This project is a starting point for a Flutter application.
+- Create a property and start move-in, move-out, or general inspections.
+- Use default room templates for structured photo and note capture.
+- Store evidence locally with timestamps, optional location, and SHA-256 hashes.
+- Capture tenant/landlord signatures and export a watermarked PDF plus JSON manifest.
+- English and Simplified Chinese UI, following the device locale.
+- GPT Image generated assets are stored under `assets/`.
 
-A few resources to get you started if this is your first Flutter project:
+## Verify
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+flutter test
+flutter analyze
+flutter build ios --simulator --debug
+flutter build apk --debug
+```

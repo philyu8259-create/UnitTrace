@@ -1,30 +1,36 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:unittrace/main.dart';
+import 'package:unittrace/src/data/in_memory_unittrace_store.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('creates a property from the empty dashboard', (tester) async {
+    await tester.pumpWidget(
+      UnitTraceApp(
+        store: InMemoryUnitTraceStore(),
+        initialLocale: const Locale('en'),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(find.text('UnitTrace'), findsWidgets);
+    expect(find.text('Create property'), findsAtLeastNWidgets(1));
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    await tester.tap(find.text('Create property').last);
+    await tester.pumpAndSettle();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const Key('property-name-field')),
+      'Oak Street Apt',
+    );
+    await tester.enterText(
+      find.byKey(const Key('property-address-field')),
+      '12 Oak Street',
+    );
+    await tester.tap(find.text('Save property'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Oak Street Apt'), findsOneWidget);
+    expect(find.text('Start inspection'), findsOneWidget);
   });
 }
