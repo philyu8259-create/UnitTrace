@@ -7,7 +7,6 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 
 import '../domain/entities.dart';
 import '../domain/report_manifest.dart';
@@ -46,7 +45,7 @@ class ReportExporter {
       appVersion: '1.0.0',
       deviceLabel: Platform.operatingSystem,
     );
-    final bytes = await _buildPdf(
+    final bytes = await buildPdfBytes(
       manifest: manifest,
       strings: strings,
       watermarked: watermarked,
@@ -70,7 +69,7 @@ class ReportExporter {
     );
   }
 
-  Future<Uint8List> _buildPdf({
+  Future<Uint8List> buildPdfBytes({
     required ReportManifest manifest,
     required AppStrings strings,
     required bool watermarked,
@@ -79,8 +78,14 @@ class ReportExporter {
     final dateFormat = DateFormat('yyyy-MM-dd HH:mm');
     final coverData = await rootBundle.load('assets/images/report_cover.png');
     final cover = pw.MemoryImage(coverData.buffer.asUint8List());
-    final baseFont = await PdfGoogleFonts.notoSansSCRegular();
-    final boldFont = await PdfGoogleFonts.notoSansSCBold();
+    final baseFontData = await rootBundle.load(
+      'assets/fonts/NotoSansSC-Regular.ttf',
+    );
+    final boldFontData = await rootBundle.load(
+      'assets/fonts/NotoSansSC-Bold.ttf',
+    );
+    final baseFont = pw.Font.ttf(baseFontData);
+    final boldFont = pw.Font.ttf(boldFontData);
     final pdfTheme = pw.ThemeData.withFont(base: baseFont, bold: boldFont);
 
     doc.addPage(

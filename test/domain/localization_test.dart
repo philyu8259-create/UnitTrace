@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:unittrace/src/domain/room_templates.dart';
 import 'package:unittrace/src/l10n/app_strings.dart';
 
 void main() {
@@ -14,5 +15,18 @@ void main() {
 
     expect(strings.appTitle, 'UnitTrace');
     expect(strings.createProperty, 'Create property');
+  });
+
+  test('localizes default inspection room templates', () {
+    expect(RoomTemplates.forLanguageCode('en').take(3), [
+      'Entry',
+      'Living room',
+      'Kitchen',
+    ]);
+    expect(RoomTemplates.forLanguageCode('zh_Hans').take(3), [
+      '玄关',
+      '客厅',
+      '厨房',
+    ]);
   });
 }

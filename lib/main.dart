@@ -26,10 +26,16 @@ Future<void> main() async {
 }
 
 class UnitTraceApp extends StatelessWidget {
-  const UnitTraceApp({super.key, required this.store, this.initialLocale});
+  const UnitTraceApp({
+    super.key,
+    required this.store,
+    this.initialLocale,
+    this.captureLocation = true,
+  });
 
   final UnitTraceStore store;
   final Locale? initialLocale;
+  final bool captureLocation;
 
   @override
   Widget build(BuildContext context) {
@@ -55,15 +61,20 @@ class UnitTraceApp extends StatelessWidget {
           ),
         ),
       ),
-      home: UnitTraceHome(store: store),
+      home: UnitTraceHome(store: store, captureLocation: captureLocation),
     );
   }
 }
 
 class UnitTraceHome extends StatefulWidget {
-  const UnitTraceHome({super.key, required this.store});
+  const UnitTraceHome({
+    super.key,
+    required this.store,
+    required this.captureLocation,
+  });
 
   final UnitTraceStore store;
+  final bool captureLocation;
 
   @override
   State<UnitTraceHome> createState() => _UnitTraceHomeState();
@@ -101,6 +112,22 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
   }
 
   Future<void> _createProperty() async {
+    if (_properties.isNotEmpty) {
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(strings.proLimitTitle),
+          content: Text(strings.proLimitMessage),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(strings.ok),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
     final property = await showDialog<PropertyRecord>(
       context: context,
       builder: (context) => _PropertyDialog(strings: strings, uuid: _uuid),
@@ -125,7 +152,9 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
       createdAt: DateTime.now().toUtc(),
     );
     await widget.store.saveInspection(inspection);
-    for (final entry in RoomTemplates.defaultRooms.indexed) {
+    for (final entry in RoomTemplates.forLanguageCode(
+      strings.languageCode,
+    ).indexed) {
       await widget.store.saveRoom(
         RoomRecord(
           id: _uuid.v4(),
@@ -188,6 +217,7 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
                     property: _selectedProperty!,
                     inspection: _selectedInspection!,
                     strings: strings,
+                    captureLocation: widget.captureLocation,
                   );
             if (!wide) {
               return ListView(
@@ -381,12 +411,14 @@ class InspectionWorkspace extends StatefulWidget {
     required this.property,
     required this.inspection,
     required this.strings,
+    required this.captureLocation,
   });
 
   final UnitTraceStore store;
   final PropertyRecord property;
   final InspectionRecord inspection;
   final AppStrings strings;
+  final bool captureLocation;
 
   @override
   State<InspectionWorkspace> createState() => _InspectionWorkspaceState();
@@ -452,10 +484,15 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
     }
 
     Position? position;
-    try {
-      position = await _currentPosition();
-    } catch (_) {
-      position = null;
+    if (widget.captureLocation) {
+      try {
+        position = await _currentPosition().timeout(
+          const Duration(seconds: 2),
+          onTimeout: () => null,
+        );
+      } catch (_) {
+        position = null;
+      }
     }
 
     final evidence = EvidenceItemRecord(
@@ -823,6 +860,7 @@ class _EvidenceSheetState extends State<_EvidenceSheet> {
           ),
           const SizedBox(height: 12),
           TextField(
+            key: const Key('evidence-description-field'),
             controller: _description,
             minLines: 3,
             maxLines: 5,

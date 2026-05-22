@@ -72,6 +72,8 @@ flutter:
     - assets/images/empty_dashboard.png
     - assets/images/report_cover.png
     - assets/app_icon/unittrace_icon_source.png
+    - assets/fonts/NotoSansSC-Regular.ttf
+    - assets/fonts/NotoSansSC-Bold.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:

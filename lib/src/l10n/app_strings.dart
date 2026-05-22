@@ -35,6 +35,11 @@ class AppStrings {
   String get freePlan => isChinese
       ? '免费版：1 个房屋，PDF 带水印。本地保存，不上传照片。'
       : 'Free: 1 property, watermarked PDF. Local-only, no photo upload.';
+  String get proLimitTitle =>
+      isChinese ? '免费版房屋数量已满' : 'Free property limit reached';
+  String get proLimitMessage => isChinese
+      ? 'MVP 先预留 Pro 解锁。当前免费版支持 1 个房屋，用于验证核心报告体验。'
+      : 'Pro unlock is reserved for the MVP. The free version currently supports 1 property while we validate the core report flow.';
   String get addEvidence => isChinese ? '添加证据' : 'Add evidence';
   String get description => isChinese ? '问题描述或备注' : 'Description or note';
   String get saveNote => isChinese ? '保存备注' : 'Save note';
