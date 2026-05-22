@@ -29,6 +29,8 @@ class ReportManifest {
   int get photoCount =>
       evidenceItems.where((item) => item.photoPath != null).length;
 
+  int get evidenceCount => evidenceItems.length;
+
   List<String> get evidenceHashes {
     return evidenceItems
         .map((item) => item.photoHash)
@@ -47,6 +49,7 @@ class ReportManifest {
       'generatedAt': generatedAt.toIso8601String(),
       'appVersion': appVersion,
       'deviceLabel': deviceLabel,
+      'evidenceCount': evidenceCount,
       'photoCount': photoCount,
       'evidenceHashes': evidenceHashes,
     };

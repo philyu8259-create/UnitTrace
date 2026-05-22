@@ -53,6 +53,7 @@ void main() {
     );
 
     expect(manifest.reportId, 'UT-inspection-1');
+    expect(manifest.evidenceCount, 1);
     expect(manifest.photoCount, 1);
     expect(manifest.evidenceHashes, [photoHash]);
     final propertyJson = manifest.toJson()['property']! as Map<String, Object?>;

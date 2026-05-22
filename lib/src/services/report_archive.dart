@@ -9,6 +9,7 @@ class ReportArchiveEntry {
     required this.propertyName,
     required this.generatedAt,
     required this.manifestHash,
+    required this.evidenceCount,
     required this.photoCount,
     required this.pdfFile,
     required this.manifestFile,
@@ -18,6 +19,7 @@ class ReportArchiveEntry {
   final String propertyName;
   final DateTime generatedAt;
   final String manifestHash;
+  final int evidenceCount;
   final int photoCount;
   final File pdfFile;
   final File manifestFile;
@@ -59,6 +61,11 @@ class ReportArchive {
                 DateTime.tryParse(json['generatedAt'] as String? ?? '') ??
                 await manifestFile.lastModified(),
             manifestHash: json['manifestHash'] as String? ?? '',
+            evidenceCount:
+                (json['evidenceCount'] as num?)?.toInt() ??
+                (json['evidenceItems'] as List<Object?>?)?.length ??
+                (json['photoCount'] as num?)?.toInt() ??
+                0,
             photoCount: (json['photoCount'] as num?)?.toInt() ?? 0,
             pdfFile: pdfFile,
             manifestFile: manifestFile,

@@ -20,6 +20,16 @@ import 'src/services/hash_service.dart';
 import 'src/services/report_archive.dart';
 import 'src/services/report_exporter.dart';
 
+const _ink = Color(0xFF172321);
+const _mutedInk = Color(0xFF65706C);
+const _deepEmerald = Color(0xFF0D3F3A);
+const _mist = Color(0xFFE7F0EC);
+const _ivory = Color(0xFFFBF7EF);
+const _warmSurface = Color(0xFFFFFCF7);
+const _line = Color(0xFFE4E0D8);
+const _brass = Color(0xFFD49A36);
+const _danger = Color(0xFF9D3D2F);
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final store = await SqliteUnitTraceStore.open();
@@ -47,19 +57,97 @@ class UnitTraceApp extends StatelessWidget {
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       theme: ThemeData(
         useMaterial3: true,
+        fontFamily: 'NotoSansSC',
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF0F5C5C),
-          primary: const Color(0xFF0F5C5C),
-          secondary: const Color(0xFFD89A2B),
-          surface: const Color(0xFFFFFCF7),
+          seedColor: _deepEmerald,
+          primary: _deepEmerald,
+          secondary: _brass,
+          surface: _warmSurface,
+          error: _danger,
         ),
-        scaffoldBackgroundColor: const Color(0xFFFFFCF7),
+        scaffoldBackgroundColor: _ivory,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: _ivory,
+          foregroundColor: _ink,
+          elevation: 0,
+          centerTitle: false,
+          titleTextStyle: TextStyle(
+            color: _ink,
+            fontFamily: 'NotoSansSC',
+            fontSize: 19,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         cardTheme: const CardThemeData(
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.all(Radius.circular(8)),
-            side: BorderSide(color: Color(0xFFE4E0D8)),
+            side: BorderSide(color: _line),
           ),
+        ),
+        chipTheme: const ChipThemeData(
+          side: BorderSide(color: _line),
+          selectedColor: _mist,
+          checkmarkColor: _deepEmerald,
+          labelStyle: TextStyle(color: _ink),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(8)),
+          ),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: _deepEmerald,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: _deepEmerald,
+            side: const BorderSide(color: _line),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: _line),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: _line),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: _deepEmerald, width: 1.4),
+          ),
+        ),
+        textTheme: const TextTheme(
+          headlineSmall: TextStyle(
+            color: _ink,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0,
+          ),
+          titleLarge: TextStyle(
+            color: _ink,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0,
+          ),
+          titleMedium: TextStyle(
+            color: _ink,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0,
+          ),
+          bodyMedium: TextStyle(color: _ink, letterSpacing: 0),
+          bodySmall: TextStyle(color: _mutedInk, letterSpacing: 0),
         ),
       ),
       home: UnitTraceHome(store: store, captureLocation: captureLocation),
@@ -235,9 +323,14 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
                     captureLocation: widget.captureLocation,
                   );
             if (!wide) {
+              final hasWorkspace =
+                  _selectedProperty != null && _selectedInspection != null;
               return ListView(
                 padding: const EdgeInsets.all(16),
-                children: [sidebar, const SizedBox(height: 16), content],
+                children: [
+                  sidebar,
+                  if (hasWorkspace) ...[const SizedBox(height: 16), content],
+                ],
               );
             }
             return Row(
@@ -261,6 +354,234 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _PremiumSurface extends StatelessWidget {
+  const _PremiumSurface({
+    required this.child,
+    this.padding = const EdgeInsets.all(16),
+    this.backgroundColor = _warmSurface,
+    this.borderColor = _line,
+  });
+
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  final Color backgroundColor;
+  final Color borderColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: borderColor),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x14000000),
+            blurRadius: 22,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Padding(padding: padding, child: child),
+    );
+  }
+}
+
+class _HeroImage extends StatelessWidget {
+  const _HeroImage({
+    required this.asset,
+    this.height = 168,
+    this.fillWidth = true,
+  });
+
+  final String asset;
+  final double height;
+  final bool fillWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Image.asset(
+        asset,
+        height: height,
+        width: fillWidth ? double.infinity : null,
+        fit: BoxFit.cover,
+      ),
+    );
+  }
+}
+
+class _TrustPill extends StatelessWidget {
+  const _TrustPill({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: _mist,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFD5E1DC)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: _deepEmerald),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: _deepEmerald,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title, this.subtitle, this.trailing});
+
+  final String title;
+  final String? subtitle;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.titleLarge),
+              ...(subtitle == null
+                  ? const <Widget>[]
+                  : [
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle!,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ]),
+            ],
+          ),
+        ),
+        ?trailing,
+      ],
+    );
+  }
+}
+
+class _MetricBadge extends StatelessWidget {
+  const _MetricBadge({
+    required this.value,
+    required this.label,
+    required this.icon,
+  });
+
+  final String value;
+  final String label;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: _line),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: _deepEmerald, size: 18),
+            const SizedBox(height: 10),
+            Text(
+              value,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 2),
+            Text(label, style: Theme.of(context).textTheme.bodySmall),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WorkbenchBrandPanel extends StatelessWidget {
+  const _WorkbenchBrandPanel({
+    required this.strings,
+    required this.propertyCount,
+    required this.inspectionCount,
+  });
+
+  final AppStrings strings;
+  final int propertyCount;
+  final int inspectionCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return _PremiumSurface(
+      backgroundColor: const Color(0xFFF8F2E8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _HeroImage(asset: 'assets/images/workbench_hero.png'),
+          const SizedBox(height: 16),
+          Text(
+            strings.trustedOffline,
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: 6),
+          Text(strings.freePlan, style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _TrustPill(icon: Icons.lock_outline, label: strings.localOnly),
+              _TrustPill(icon: Icons.fingerprint, label: strings.hashReady),
+              _TrustPill(
+                icon: Icons.picture_as_pdf_outlined,
+                label: strings.pdfEvidence,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              _MetricBadge(
+                value: '$propertyCount',
+                label: strings.propertiesMetric,
+                icon: Icons.apartment,
+              ),
+              const SizedBox(width: 10),
+              _MetricBadge(
+                value: '$inspectionCount',
+                label: strings.inspectionsMetric,
+                icon: Icons.fact_check_outlined,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -299,43 +620,92 @@ class _DashboardSidebar extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          strings.appSubtitle,
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 8),
-        Text(strings.freePlan, style: Theme.of(context).textTheme.bodySmall),
-        const SizedBox(height: 16),
-        FilledButton.icon(
-          onPressed: onCreateProperty,
-          icon: const Icon(Icons.add),
-          label: Text(strings.createProperty),
-        ),
-        const SizedBox(height: 8),
-        OutlinedButton.icon(
-          onPressed: onOpenReportHistory,
-          icon: const Icon(Icons.folder_copy_outlined),
-          label: Text(strings.reportHistory),
+        _WorkbenchBrandPanel(
+          strings: strings,
+          propertyCount: properties.length,
+          inspectionCount: inspections.length,
         ),
         const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: onCreateProperty,
+                icon: const Icon(Icons.add_home_work_outlined),
+                label: Text(strings.createProperty),
+              ),
+            ),
+            const SizedBox(width: 10),
+            IconButton.outlined(
+              tooltip: strings.reportHistory,
+              onPressed: onOpenReportHistory,
+              icon: const Icon(Icons.folder_copy_outlined),
+            ),
+          ],
+        ),
+        if (properties.isNotEmpty) const SizedBox(height: 16),
         ...properties.map(
-          (property) => Card(
-            color: property.id == selectedProperty?.id
-                ? const Color(0xFFE6F1EF)
-                : null,
-            child: ListTile(
-              leading: const Icon(Icons.apartment),
-              title: Text(property.name),
-              subtitle: Text(property.address),
-              onTap: () => onSelectProperty(property),
+          (property) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _PremiumSurface(
+              padding: const EdgeInsets.all(12),
+              backgroundColor: property.id == selectedProperty?.id
+                  ? _mist
+                  : _warmSurface,
+              borderColor: property.id == selectedProperty?.id
+                  ? const Color(0xFFC9DCD5)
+                  : _line,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () => onSelectProperty(property),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: _deepEmerald,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.apartment,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            property.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            property.address,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
         if (selectedProperty != null) ...[
-          const SizedBox(height: 16),
-          Text(
-            strings.startInspection,
-            style: Theme.of(context).textTheme.titleSmall,
+          const SizedBox(height: 6),
+          _SectionHeader(
+            title: strings.startInspection,
+            subtitle: strings.evidenceWorkbench,
           ),
           const SizedBox(height: 8),
           SegmentedButton<InspectionType>(
@@ -364,16 +734,26 @@ class _DashboardSidebar extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           ...propertyInspections.map(
-            (inspection) => ListTile(
-              leading: const Icon(Icons.description_outlined),
-              selected: inspection.id == selectedInspection?.id,
-              title: Text(_typeLabel(strings, inspection.type)),
-              subtitle: Text(
-                MaterialLocalizations.of(
-                  context,
-                ).formatMediumDate(inspection.createdAt.toLocal()),
+            (inspection) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: ListTile(
+                tileColor: inspection.id == selectedInspection?.id
+                    ? _mist
+                    : Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: const BorderSide(color: _line),
+                ),
+                leading: const Icon(Icons.description_outlined),
+                selected: inspection.id == selectedInspection?.id,
+                title: Text(_typeLabel(strings, inspection.type)),
+                subtitle: Text(
+                  MaterialLocalizations.of(
+                    context,
+                  ).formatMediumDate(inspection.createdAt.toLocal()),
+                ),
+                onTap: () => onSelectInspection(inspection),
               ),
-              onTap: () => onSelectInspection(inspection),
             ),
           ),
         ],
@@ -396,31 +776,52 @@ class _EmptyDashboard extends StatelessWidget {
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 560),
-        child: Column(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                'assets/images/empty_dashboard.png',
-                height: 230,
-                fit: BoxFit.cover,
+        child: _PremiumSurface(
+          padding: const EdgeInsets.all(18),
+          backgroundColor: const Color(0xFFF8F2E8),
+          child: Column(
+            children: [
+              const _HeroImage(
+                asset: 'assets/images/workbench_hero.png',
+                height: 250,
               ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              strings.trustedOffline,
-              style: Theme.of(context).textTheme.headlineSmall,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(strings.noProperties, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: onCreateProperty,
-              icon: const Icon(Icons.add_home_work_outlined),
-              label: Text(strings.createProperty),
-            ),
-          ],
+              const SizedBox(height: 18),
+              Text(
+                strings.trustedOffline,
+                style: Theme.of(context).textTheme.headlineSmall,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                strings.noProperties,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _TrustPill(
+                    icon: Icons.lock_outline,
+                    label: strings.localOnly,
+                  ),
+                  _TrustPill(icon: Icons.fingerprint, label: strings.hashReady),
+                  _TrustPill(
+                    icon: Icons.picture_as_pdf_outlined,
+                    label: strings.pdfEvidence,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              FilledButton.icon(
+                onPressed: onCreateProperty,
+                icon: const Icon(Icons.add_home_work_outlined),
+                label: Text(strings.createProperty),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -588,39 +989,87 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
     final roomEvidence = _evidence
         .where((item) => item.roomId == _selectedRoom?.id)
         .toList();
+    final issueCount = _evidence
+        .where((item) => item.severity != EvidenceSeverity.good)
+        .length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.property.name,
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            Text(
-              '${_typeLabel(widget.strings, widget.inspection.type)} | ${widget.property.address}',
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 10,
-              runSpacing: 8,
-              children: [
-                FilledButton.icon(
-                  onPressed: _exportReport,
-                  icon: const Icon(Icons.picture_as_pdf_outlined),
-                  label: Text(widget.strings.generateReport),
-                ),
-                FilledButton.tonalIcon(
-                  onPressed: _addSignature,
-                  icon: const Icon(Icons.draw_outlined),
-                  label: Text(widget.strings.addSignature),
-                ),
-              ],
-            ),
-          ],
+        _PremiumSurface(
+          padding: const EdgeInsets.all(14),
+          backgroundColor: const Color(0xFFF8F2E8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _HeroImage(
+                asset: 'assets/images/evidence_capture.png',
+                height: 132,
+              ),
+              const SizedBox(height: 14),
+              Text(
+                widget.property.name,
+                style: Theme.of(context).textTheme.headlineSmall,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 3),
+              Text(
+                '${_typeLabel(widget.strings, widget.inspection.type)} | ${widget.property.address}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  _MetricBadge(
+                    value: '${_evidence.length}',
+                    label: widget.strings.evidence,
+                    icon: Icons.photo_library_outlined,
+                  ),
+                  const SizedBox(width: 10),
+                  _MetricBadge(
+                    value: '$issueCount',
+                    label: widget.strings.issue,
+                    icon: Icons.report_problem_outlined,
+                  ),
+                  const SizedBox(width: 10),
+                  _MetricBadge(
+                    value: '${_signatures.length}',
+                    label: widget.strings.signatures,
+                    icon: Icons.draw_outlined,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 10,
+                runSpacing: 8,
+                children: [
+                  FilledButton.icon(
+                    onPressed: () => _addEvidence(source: null),
+                    icon: const Icon(Icons.note_add_outlined),
+                    label: Text(widget.strings.addEvidence),
+                  ),
+                  FilledButton.tonalIcon(
+                    onPressed: _addSignature,
+                    icon: const Icon(Icons.draw_outlined),
+                    label: Text(widget.strings.addSignature),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: _exportReport,
+                    icon: const Icon(Icons.picture_as_pdf_outlined),
+                    label: Text(widget.strings.generateReport),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 18),
+        _SectionHeader(
+          title: widget.strings.rooms,
+          subtitle: widget.strings.captureReady,
+        ),
+        const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -635,39 +1084,40 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
               .toList(),
         ),
         const SizedBox(height: 18),
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                widget.strings.evidence,
-                style: Theme.of(context).textTheme.titleLarge,
+        _SectionHeader(
+          title: widget.strings.evidence,
+          subtitle: widget.strings.hashReady,
+          trailing: Wrap(
+            spacing: 8,
+            children: [
+              IconButton.filledTonal(
+                tooltip: widget.strings.takePhoto,
+                onPressed: () => _addEvidence(source: ImageSource.camera),
+                icon: const Icon(Icons.photo_camera_outlined),
               ),
-            ),
-            IconButton.filledTonal(
-              tooltip: widget.strings.takePhoto,
-              onPressed: () => _addEvidence(source: ImageSource.camera),
-              icon: const Icon(Icons.photo_camera_outlined),
-            ),
-            const SizedBox(width: 8),
-            IconButton.filledTonal(
-              tooltip: widget.strings.choosePhoto,
-              onPressed: () => _addEvidence(source: ImageSource.gallery),
-              icon: const Icon(Icons.photo_library_outlined),
-            ),
-            const SizedBox(width: 8),
-            IconButton.filledTonal(
-              tooltip: widget.strings.addEvidence,
-              onPressed: () => _addEvidence(source: null),
-              icon: const Icon(Icons.note_add_outlined),
-            ),
-          ],
+              IconButton.filledTonal(
+                tooltip: widget.strings.choosePhoto,
+                onPressed: () => _addEvidence(source: ImageSource.gallery),
+                icon: const Icon(Icons.photo_library_outlined),
+              ),
+              IconButton.filledTonal(
+                tooltip: widget.strings.addEvidence,
+                onPressed: () => _addEvidence(source: null),
+                icon: const Icon(Icons.note_add_outlined),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 10),
         if (roomEvidence.isEmpty)
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Text(widget.strings.addEvidence),
+          _PremiumSurface(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                const Icon(Icons.add_photo_alternate_outlined),
+                const SizedBox(width: 10),
+                Expanded(child: Text(widget.strings.addEvidence)),
+              ],
             ),
           )
         else
@@ -675,15 +1125,9 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
             (item) => _EvidenceCard(item: item, strings: widget.strings),
           ),
         const SizedBox(height: 18),
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                widget.strings.signatures,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ),
-          ],
+        _SectionHeader(
+          title: widget.strings.signatures,
+          subtitle: widget.strings.signatureReady,
         ),
         const SizedBox(height: 10),
         ..._signatures.map(
@@ -694,10 +1138,15 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
           ),
         ),
         if (_lastReport != null)
-          Card(
-            color: const Color(0xFFE6F1EF),
+          _PremiumSurface(
+            backgroundColor: _mist,
+            borderColor: const Color(0xFFC9DCD5),
+            padding: EdgeInsets.zero,
             child: ListTile(
-              leading: const Icon(Icons.check_circle_outline),
+              leading: const Icon(
+                Icons.check_circle_outline,
+                color: _deepEmerald,
+              ),
               title: Text(widget.strings.reportReady),
               subtitle: Text(_lastReport!.pdfFile.path),
               trailing: Wrap(
@@ -760,58 +1209,84 @@ class _ReportHistorySheetState extends State<_ReportHistorySheet> {
                 controller: scrollController,
                 padding: const EdgeInsets.all(20),
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          widget.strings.reportHistory,
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                      ),
-                      IconButton(
-                        tooltip: widget.strings.cancel,
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close),
-                      ),
-                    ],
+                  _SectionHeader(
+                    title: widget.strings.reportHistory,
+                    subtitle: widget.strings.archiveSubtitle,
+                    trailing: IconButton(
+                      tooltip: widget.strings.cancel,
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                    ),
                   ),
                   const SizedBox(height: 12),
+                  const _HeroImage(
+                    asset: 'assets/images/report_archive.png',
+                    height: 150,
+                  ),
+                  const SizedBox(height: 14),
                   if (snapshot.connectionState == ConnectionState.waiting)
                     const Center(child: CircularProgressIndicator())
                   else if (reports.isEmpty)
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(18),
-                        child: Text(widget.strings.noReports),
+                    _PremiumSurface(
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.inventory_2_outlined,
+                            color: _deepEmerald,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(child: Text(widget.strings.noReports)),
+                        ],
                       ),
                     )
                   else
                     ...reports.map(
-                      (report) => Card(
-                        child: ListTile(
-                          leading: const Icon(Icons.picture_as_pdf_outlined),
-                          title: Text(report.propertyName),
-                          subtitle: Text(
-                            '${report.reportId} | ${report.photoCount} ${widget.strings.evidence.toLowerCase()} | ${_shortHash(report.manifestHash)}',
-                          ),
-                          trailing: Wrap(
-                            spacing: 2,
-                            children: [
-                              IconButton(
-                                tooltip: widget.strings.viewReport,
-                                onPressed: () => _openPdfPreview(
-                                  context,
-                                  widget.strings,
-                                  report.pdfFile,
+                      (report) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: _PremiumSurface(
+                          padding: EdgeInsets.zero,
+                          child: ListTile(
+                            leading: Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: _mist,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.picture_as_pdf_outlined,
+                                color: _deepEmerald,
+                              ),
+                            ),
+                            title: Text(
+                              report.propertyName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            subtitle: Text(
+                              '${report.reportId} | ${report.evidenceCount} ${widget.strings.evidence.toLowerCase()} | ${_shortHash(report.manifestHash)}',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            trailing: Wrap(
+                              spacing: 2,
+                              children: [
+                                IconButton(
+                                  tooltip: widget.strings.viewReport,
+                                  onPressed: () => _openPdfPreview(
+                                    context,
+                                    widget.strings,
+                                    report.pdfFile,
+                                  ),
+                                  icon: const Icon(Icons.visibility_outlined),
                                 ),
-                                icon: const Icon(Icons.visibility_outlined),
-                              ),
-                              IconButton(
-                                tooltip: widget.strings.shareReportAction,
-                                onPressed: () => _sharePdf(report.pdfFile),
-                                icon: const Icon(Icons.ios_share_outlined),
-                              ),
-                            ],
+                                IconButton(
+                                  tooltip: widget.strings.shareReportAction,
+                                  onPressed: () => _sharePdf(report.pdfFile),
+                                  icon: const Icon(Icons.ios_share_outlined),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -834,15 +1309,21 @@ class _EvidenceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
+    final severityColor = item.severity == EvidenceSeverity.urgent
+        ? _danger
+        : item.severity == EvidenceSeverity.issue
+        ? _brass
+        : _deepEmerald;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: _PremiumSurface(
         padding: const EdgeInsets.all(12),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (item.photoPath != null)
               ClipRRect(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(8),
                 child: Image.file(
                   File(item.photoPath!),
                   width: 96,
@@ -855,23 +1336,48 @@ class _EvidenceCard extends StatelessWidget {
                 width: 96,
                 height: 72,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE6F1EF),
-                  borderRadius: BorderRadius.circular(6),
+                  color: _mist,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFD5E1DC)),
                 ),
-                child: const Icon(Icons.note_alt_outlined),
+                child: const Icon(Icons.note_alt_outlined, color: _deepEmerald),
               ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: severityColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _severityLabel(strings, item.severity),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: severityColor,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
                   Text(
                     item.description.isEmpty ? strings.note : item.description,
-                    style: Theme.of(context).textTheme.titleSmall,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${_severityLabel(strings, item.severity)} | ${item.capturedAt.toLocal()}',
+                    '${strings.captureReady} | ${item.capturedAt.toLocal()}',
+                    style: Theme.of(context).textTheme.bodySmall,
                   ),
                   if (item.photoHash != null)
                     Text(
@@ -917,10 +1423,18 @@ class _PropertyDialogState extends State<_PropertyDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      backgroundColor: _warmSurface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       title: Text(widget.strings.createProperty),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          const _HeroImage(
+            asset: 'assets/images/workbench_hero.png',
+            height: 128,
+            fillWidth: false,
+          ),
+          const SizedBox(height: 14),
           TextField(
             key: const Key('property-name-field'),
             controller: _name,
@@ -986,58 +1500,64 @@ class _EvidenceSheetState extends State<_EvidenceSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        20,
-        20,
-        MediaQuery.of(context).viewInsets.bottom + 20,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            widget.strings.addEvidence,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            key: const Key('evidence-description-field'),
-            controller: _description,
-            minLines: 3,
-            maxLines: 5,
-            decoration: InputDecoration(
-              labelText: widget.strings.description,
-              border: const OutlineInputBorder(),
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          20,
+          20,
+          MediaQuery.of(context).viewInsets.bottom + 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _SectionHeader(
+              title: widget.strings.addEvidence,
+              subtitle: widget.strings.hashReady,
             ),
-          ),
-          const SizedBox(height: 12),
-          SegmentedButton<EvidenceSeverity>(
-            segments: EvidenceSeverity.values
-                .map(
-                  (severity) => ButtonSegment(
-                    value: severity,
-                    label: Text(_severityLabel(widget.strings, severity)),
-                  ),
-                )
-                .toList(),
-            selected: {_severity},
-            onSelectionChanged: (selection) =>
-                setState(() => _severity = selection.first),
-          ),
-          const SizedBox(height: 12),
-          FilledButton(
-            onPressed: () => Navigator.pop(
-              context,
-              _EvidenceDraft(
-                description: _description.text.trim(),
-                severity: _severity,
+            const SizedBox(height: 12),
+            const _HeroImage(
+              asset: 'assets/images/evidence_capture.png',
+              height: 120,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              key: const Key('evidence-description-field'),
+              controller: _description,
+              minLines: 3,
+              maxLines: 5,
+              decoration: InputDecoration(
+                labelText: widget.strings.description,
               ),
             ),
-            child: Text(widget.strings.saveNote),
-          ),
-        ],
+            const SizedBox(height: 12),
+            SegmentedButton<EvidenceSeverity>(
+              segments: EvidenceSeverity.values
+                  .map(
+                    (severity) => ButtonSegment(
+                      value: severity,
+                      label: Text(_severityLabel(widget.strings, severity)),
+                    ),
+                  )
+                  .toList(),
+              selected: {_severity},
+              onSelectionChanged: (selection) =>
+                  setState(() => _severity = selection.first),
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: () => Navigator.pop(
+                context,
+                _EvidenceDraft(
+                  description: _description.text.trim(),
+                  severity: _severity,
+                ),
+              ),
+              child: Text(widget.strings.saveNote),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1111,44 +1631,57 @@ class _SignatureDialogState extends State<_SignatureDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      backgroundColor: _warmSurface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       title: Text(widget.strings.addSignature),
       content: SizedBox(
         width: 420,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SegmentedButton<String>(
-              segments: [
-                ButtonSegment(
-                  value: 'Tenant',
-                  label: Text(widget.strings.tenant),
-                ),
-                ButtonSegment(
-                  value: 'Landlord',
-                  label: Text(widget.strings.landlord),
-                ),
-              ],
-              selected: {_role},
-              onSelectionChanged: (selection) =>
-                  setState(() => _role = selection.first),
-            ),
-            TextField(
-              controller: _name,
-              decoration: InputDecoration(labelText: widget.strings.signerName),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              height: 180,
-              decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFFE4E0D8)),
-                borderRadius: BorderRadius.circular(8),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const _HeroImage(
+                asset: 'assets/images/signature_verify.png',
+                height: 112,
+                fillWidth: false,
               ),
-              child: Signature(
-                controller: _controller,
-                backgroundColor: Colors.white,
+              const SizedBox(height: 12),
+              SegmentedButton<String>(
+                segments: [
+                  ButtonSegment(
+                    value: 'Tenant',
+                    label: Text(widget.strings.tenant),
+                  ),
+                  ButtonSegment(
+                    value: 'Landlord',
+                    label: Text(widget.strings.landlord),
+                  ),
+                ],
+                selected: {_role},
+                onSelectionChanged: (selection) =>
+                    setState(() => _role = selection.first),
               ),
-            ),
-          ],
+              TextField(
+                controller: _name,
+                decoration: InputDecoration(
+                  labelText: widget.strings.signerName,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                height: 180,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: _line),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Signature(
+                  controller: _controller,
+                  backgroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
       actions: [

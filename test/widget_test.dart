@@ -3,6 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:unittrace/main.dart';
 import 'package:unittrace/src/data/in_memory_unittrace_store.dart';
 
+Future<void> tapCreateProperty(WidgetTester tester) async {
+  final button = find.widgetWithText(FilledButton, 'Create property').first;
+  await tester.ensureVisible(button);
+  await tester.tap(button);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('creates a property from the empty dashboard', (tester) async {
     await tester.pumpWidget(
@@ -17,8 +24,7 @@ void main() {
     expect(find.text('UnitTrace'), findsWidgets);
     expect(find.text('Create property'), findsAtLeastNWidgets(1));
 
-    await tester.tap(find.text('Create property').last);
-    await tester.pumpAndSettle();
+    await tapCreateProperty(tester);
 
     await tester.enterText(
       find.byKey(const Key('property-name-field')),
@@ -46,8 +52,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Create property').last);
-    await tester.pumpAndSettle();
+    await tapCreateProperty(tester);
     await tester.enterText(
       find.byKey(const Key('property-name-field')),
       'Oak Street Apt',
@@ -59,6 +64,7 @@ void main() {
     await tester.tap(find.text('Save property'));
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.text('Move-in'));
     await tester.tap(find.text('Move-in'));
     await tester.pumpAndSettle();
     for (var i = 0; i < 10 && (await store.loadInspections()).isEmpty; i++) {
@@ -67,7 +73,7 @@ void main() {
     expect(find.text('Generate PDF report'), findsOneWidget);
     expect(find.text('Entry'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.note_add_outlined));
+    await tester.tap(find.widgetWithText(FilledButton, 'Add evidence'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const Key('evidence-description-field')),
@@ -83,8 +89,9 @@ void main() {
     expect(evidence.single.description, 'Scratch near the entry door');
     expect(find.text('Scratch near the entry door'), findsOneWidget);
 
-    await tester.ensureVisible(find.text('Add signature'));
-    await tester.tap(find.text('Add signature'));
+    final addSignature = find.widgetWithText(FilledButton, 'Add signature');
+    await tester.ensureVisible(addSignature);
+    await tester.tap(addSignature);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).last, 'Alex Tenant');
     await tester.tap(find.text('Save signature'));
@@ -102,8 +109,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Create property').last);
-    await tester.pumpAndSettle();
+    await tapCreateProperty(tester);
     await tester.enterText(
       find.byKey(const Key('property-name-field')),
       'Oak Street Apt',

@@ -35,6 +35,18 @@ class AppStrings {
   String get freePlan => isChinese
       ? '免费版：1 个房屋，PDF 带水印。本地保存，不上传照片。'
       : 'Free: 1 property, watermarked PDF. Local-only, no photo upload.';
+  String get localOnly => isChinese ? '本地保存' : 'Local only';
+  String get hashReady => isChinese ? '哈希留痕' : 'Hash trail';
+  String get pdfEvidence => isChinese ? 'PDF 证据包' : 'PDF packet';
+  String get propertiesMetric => isChinese ? '房屋' : 'Properties';
+  String get inspectionsMetric => isChinese ? '检查' : 'Inspections';
+  String get evidenceWorkbench => isChinese ? '证据工作台' : 'Evidence workbench';
+  String get archiveSubtitle => isChinese
+      ? '已导出的 PDF 和 manifest 会保存在本机档案中。'
+      : 'Exported PDFs and manifests stay archived on this device.';
+  String get captureReady => isChinese ? '采集就绪' : 'Capture ready';
+  String get signatureReady => isChinese ? '签名就绪' : 'Signature ready';
+  String get exportReady => isChinese ? '可导出' : 'Export ready';
   String get proLimitTitle =>
       isChinese ? '免费版房屋数量已满' : 'Free property limit reached';
   String get proLimitMessage => isChinese

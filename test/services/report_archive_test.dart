@@ -34,6 +34,8 @@ void main() {
     expect(reports.first.propertyName, 'Newer Apt');
     expect(reports.first.pdfFile.path, endsWith('newer.pdf'));
     expect(reports.first.manifestHash, 'b' * 64);
+    expect(reports.first.evidenceCount, 3);
+    expect(reports.first.photoCount, 2);
   });
 }
 
@@ -54,6 +56,7 @@ Future<void> _writeReportPair(
       'property': {'name': propertyName},
       'generatedAt': generatedAt.toIso8601String(),
       'manifestHash': manifestHash,
+      'evidenceCount': 3,
       'photoCount': 2,
     }),
   );
