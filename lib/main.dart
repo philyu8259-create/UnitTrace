@@ -3118,6 +3118,28 @@ class _EvidenceCard extends StatelessWidget {
     final watermark = item.photoHash == null
         ? strings.evidenceWatermarkBrand
         : '${strings.evidenceWatermarkBrand} · ${item.photoHash!}${item.photoHash!.isNotEmpty ? ' · $timestamp' : ''}';
+    final isTextOnly = item.photoPath == null && !hasPhotoFile;
+    final title = item.description.isEmpty
+        ? _severityLabel(strings, item.severity)
+        : item.description;
+    final metadataPills = <Widget>[
+      _StatusPill(label: '${strings.timestamp}: $timestamp'),
+      if (!isTextOnly)
+        _StatusPill(
+          label: hasPhotoFile ? strings.photoAvailable : strings.photoMissing,
+          emphasized: hasPhotoFile,
+        ),
+      _StatusPill(
+        label: '${strings.hashBadgeLabel}: $shortHash',
+        emphasized: item.photoHash != null,
+      ),
+      _StatusPill(
+        label: '${strings.locationStatus}: $gps',
+        emphasized: item.latitude != null && item.longitude != null,
+      ),
+      if (item.description.isNotEmpty)
+        _StatusPill(label: '${strings.note}: ${item.description}'),
+    ];
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -3126,89 +3148,122 @@ class _EvidenceCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AspectRatio(
-              aspectRatio: 16 / 9,
-              child: ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(16),
-                ),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    if (hasPhotoFile)
-                      Image.file(photoFile!, fit: BoxFit.cover)
-                    else
-                      Container(
-                        color: AppColors.mist,
-                        child: Icon(
-                          item.photoPath == null
-                              ? Icons.note_alt_outlined
-                              : Icons.broken_image_outlined,
-                          color: AppColors.deepEmerald,
-                        ),
-                      ),
-                    if (hasPhotoFile)
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.transparent,
-                              Colors.black.withValues(alpha: 0.35),
-                            ],
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
+            if (!isTextOnly)
+              AspectRatio(
+                aspectRatio: 16 / 9,
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
+                  ),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (hasPhotoFile)
+                        Image.file(photoFile!, fit: BoxFit.cover)
+                      else
+                        Container(
+                          color: AppColors.mist,
+                          child: Icon(
+                            Icons.broken_image_outlined,
+                            color: AppColors.deepEmerald,
                           ),
                         ),
-                      ),
-                    if (hasPhotoFile)
-                      Align(
-                        alignment: Alignment.bottomLeft,
-                        child: Padding(
-                          padding: const EdgeInsets.all(8),
-                          child: Text(
-                            watermark,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
+                      if (hasPhotoFile)
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withValues(alpha: 0.35),
+                              ],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
                             ),
                           ),
                         ),
-                      ),
-                  ],
+                      if (hasPhotoFile)
+                        Align(
+                          alignment: Alignment.bottomLeft,
+                          child: Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: Text(
+                              watermark,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
             Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-              ).copyWith(bottom: 12),
+              padding: EdgeInsets.fromLTRB(12, isTextOnly ? 12 : 12, 12, 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
-                        width: 8,
-                        height: 8,
+                        width: 34,
+                        height: 34,
                         decoration: BoxDecoration(
-                          color: severityColor,
-                          shape: BoxShape.circle,
+                          color: AppColors.estateGreenSoft,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          isTextOnly
+                              ? Icons.sticky_note_2_outlined
+                              : Icons.image_outlined,
+                          size: 18,
+                          color: AppColors.deepEmerald,
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        _severityLabel(strings, item.severity),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: severityColor,
-                          fontWeight: FontWeight.w800,
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 7,
+                                  height: 7,
+                                  decoration: BoxDecoration(
+                                    color: severityColor,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  _severityLabel(strings, item.severity),
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: severityColor,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              title,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w800),
+                            ),
+                          ],
                         ),
                       ),
-                      const Spacer(),
                       IconButton(
                         tooltip: strings.deleteEvidence,
                         onPressed: onDelete,
@@ -3216,42 +3271,8 @@ class _EvidenceCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 5),
-                  Text(
-                    item.description.isEmpty ? strings.note : item.description,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      _StatusPill(label: '${strings.timestamp}: $timestamp'),
-                      _StatusPill(
-                        label: hasPhotoFile
-                            ? strings.photoAvailable
-                            : item.photoPath == null
-                            ? strings.saveNote
-                            : strings.photoMissing,
-                        emphasized: hasPhotoFile,
-                      ),
-                      _StatusPill(
-                        label: '${strings.hashBadgeLabel}: $shortHash',
-                        emphasized: item.photoHash != null,
-                      ),
-                      _StatusPill(
-                        label: '${strings.locationStatus}: $gps',
-                        emphasized:
-                            item.latitude != null && item.longitude != null,
-                      ),
-                      _StatusPill(
-                        label:
-                            '${strings.note}: ${item.description.isEmpty ? strings.note : item.description}',
-                      ),
-                    ],
-                  ),
+                  const SizedBox(height: 10),
+                  Wrap(spacing: 6, runSpacing: 6, children: metadataPills),
                 ],
               ),
             ),
