@@ -164,4 +164,60 @@ class SqliteUnitTraceStore implements UnitTraceStore {
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
+
+  @override
+  Future<void> deleteProperty(String propertyId) async {
+    await _db.transaction((txn) async {
+      final inspectionRows = await txn.query(
+        'inspections',
+        columns: ['id'],
+        where: 'propertyId = ?',
+        whereArgs: [propertyId],
+      );
+      final inspectionIds = inspectionRows.map((row) => row['id']! as String);
+      for (final inspectionId in inspectionIds) {
+        await _deleteInspectionInTransaction(txn, inspectionId);
+      }
+      await txn.delete('properties', where: 'id = ?', whereArgs: [propertyId]);
+    });
+  }
+
+  @override
+  Future<void> deleteInspection(String inspectionId) async {
+    await _db.transaction((txn) async {
+      await _deleteInspectionInTransaction(txn, inspectionId);
+    });
+  }
+
+  Future<void> _deleteInspectionInTransaction(
+    Transaction txn,
+    String inspectionId,
+  ) async {
+    await txn.delete(
+      'evidence',
+      where: 'inspectionId = ?',
+      whereArgs: [inspectionId],
+    );
+    await txn.delete(
+      'signatures',
+      where: 'inspectionId = ?',
+      whereArgs: [inspectionId],
+    );
+    await txn.delete(
+      'rooms',
+      where: 'inspectionId = ?',
+      whereArgs: [inspectionId],
+    );
+    await txn.delete('inspections', where: 'id = ?', whereArgs: [inspectionId]);
+  }
+
+  @override
+  Future<void> deleteEvidence(String evidenceId) {
+    return _db.delete('evidence', where: 'id = ?', whereArgs: [evidenceId]);
+  }
+
+  @override
+  Future<void> deleteSignature(String signatureId) {
+    return _db.delete('signatures', where: 'id = ?', whereArgs: [signatureId]);
+  }
 }

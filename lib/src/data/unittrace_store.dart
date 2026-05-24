@@ -12,4 +12,8 @@ abstract class UnitTraceStore {
   Future<void> saveRoom(RoomRecord room);
   Future<void> saveEvidence(EvidenceItemRecord evidence);
   Future<void> saveSignature(SignatureRecord signature);
+  Future<void> deleteProperty(String propertyId);
+  Future<void> deleteInspection(String inspectionId);
+  Future<void> deleteEvidence(String evidenceId);
+  Future<void> deleteSignature(String signatureId);
 }

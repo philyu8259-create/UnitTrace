@@ -153,10 +153,19 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
       _roomsByInspection = roomsByInspection;
       _evidenceByInspection = evidenceByInspection;
       _signaturesByInspection = signaturesByInspection;
-      _selectedProperty ??= properties.firstOrNull;
-      _selectedInspection ??= inspections
-          .where((inspection) => inspection.propertyId == _selectedProperty?.id)
-          .firstOrNull;
+      if (!properties.any((item) => item.id == _selectedProperty?.id)) {
+        _selectedProperty = properties.firstOrNull;
+      }
+      final selectedInspectionStillValid = inspections.any(
+        (item) =>
+            item.id == _selectedInspection?.id &&
+            item.propertyId == _selectedProperty?.id,
+      );
+      if (!selectedInspectionStillValid) {
+        _selectedInspection = _selectedProperty == null
+            ? null
+            : _latestInspectionFrom(inspections, _selectedProperty!.id);
+      }
       _loading = false;
     });
   }
@@ -260,6 +269,51 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
     );
   }
 
+  Future<void> _deleteProperty(PropertyRecord property) async {
+    final confirmed = await _confirmDestructiveAction(
+      context: context,
+      strings: strings,
+      title: strings.deleteProperty,
+      message: strings.deletePropertyMessage,
+    );
+    if (!confirmed) return;
+    await widget.store.deleteProperty(property.id);
+    if (!mounted) return;
+    setState(() {
+      if (_selectedProperty?.id == property.id) {
+        _selectedProperty = null;
+        _selectedInspection = null;
+      }
+    });
+    await _reload();
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(strings.propertyDeleted)));
+  }
+
+  Future<void> _deleteInspection(InspectionRecord inspection) async {
+    final confirmed = await _confirmDestructiveAction(
+      context: context,
+      strings: strings,
+      title: strings.deleteInspection,
+      message: strings.deleteInspectionMessage,
+    );
+    if (!confirmed) return;
+    await widget.store.deleteInspection(inspection.id);
+    if (!mounted) return;
+    setState(() {
+      if (_selectedInspection?.id == inspection.id) {
+        _selectedInspection = null;
+      }
+    });
+    await _reload();
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(strings.inspectionDeleted)));
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -319,6 +373,8 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
                 );
               },
               onStartInspection: _startInspection,
+              onDeleteProperty: _deleteProperty,
+              onDeleteInspection: _deleteInspection,
             );
             final content = _selectedProperty == null
                 ? _EmptyDashboard(
@@ -400,13 +456,20 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
   }
 
   InspectionRecord? _latestInspectionForProperty(String propertyId) {
-    final sorted =
-        _inspections
-            .where((inspection) => inspection.propertyId == propertyId)
-            .toList()
-          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    return sorted.firstOrNull;
+    return _latestInspectionFrom(_inspections, propertyId);
   }
+}
+
+InspectionRecord? _latestInspectionFrom(
+  List<InspectionRecord> inspections,
+  String propertyId,
+) {
+  final sorted =
+      inspections
+          .where((inspection) => inspection.propertyId == propertyId)
+          .toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  return sorted.firstOrNull;
 }
 
 class _FloatingMobileTabs extends StatelessWidget {
@@ -854,6 +917,8 @@ class _DashboardSidebar extends StatelessWidget {
     required this.onSelectInspection,
     required this.onStartInspection,
     required this.onOpenReportHistory,
+    required this.onDeleteProperty,
+    required this.onDeleteInspection,
   });
 
   final AppStrings strings;
@@ -869,6 +934,8 @@ class _DashboardSidebar extends StatelessWidget {
   final ValueChanged<InspectionRecord> onSelectInspection;
   final ValueChanged<InspectionType> onStartInspection;
   final VoidCallback onOpenReportHistory;
+  final ValueChanged<PropertyRecord> onDeleteProperty;
+  final ValueChanged<InspectionRecord> onDeleteInspection;
 
   @override
   Widget build(BuildContext context) {
@@ -1019,6 +1086,7 @@ class _DashboardSidebar extends StatelessWidget {
               latestInspection: _latestInspectionForProperty(property.id),
               latestSummary: _latestSummaryForProperty(property.id),
               onTap: () => onSelectProperty(property),
+              onDelete: () => onDeleteProperty(property),
             ),
           ),
         ),
@@ -1075,6 +1143,7 @@ class _DashboardSidebar extends StatelessWidget {
                   signatures: signaturesByInspection[inspection.id] ?? const [],
                 ),
                 onTap: () => onSelectInspection(inspection),
+                onDelete: () => onDeleteInspection(inspection),
               ),
             ),
           ],
@@ -1112,6 +1181,7 @@ class _PropertyDashboardCard extends StatelessWidget {
     required this.latestInspection,
     required this.latestSummary,
     required this.onTap,
+    required this.onDelete,
   });
 
   final AppStrings strings;
@@ -1120,6 +1190,7 @@ class _PropertyDashboardCard extends StatelessWidget {
   final InspectionRecord? latestInspection;
   final InspectionProgressSummary? latestSummary;
   final VoidCallback onTap;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -1229,14 +1300,22 @@ class _PropertyDashboardCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (selected) ...[
-                  const SizedBox(width: 6),
-                  const Icon(
-                    Icons.radio_button_checked,
-                    color: AppColors.success,
-                    size: 16,
-                  ),
-                ],
+                const SizedBox(width: 6),
+                Column(
+                  children: [
+                    IconButton(
+                      tooltip: strings.deleteProperty,
+                      onPressed: onDelete,
+                      icon: const Icon(Icons.delete_outline),
+                    ),
+                    if (selected)
+                      const Icon(
+                        Icons.radio_button_checked,
+                        color: AppColors.success,
+                        size: 16,
+                      ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -1320,6 +1399,7 @@ class _InspectionDashboardTile extends StatelessWidget {
     required this.summary,
     required this.selected,
     required this.onTap,
+    required this.onDelete,
   });
 
   final AppStrings strings;
@@ -1327,6 +1407,7 @@ class _InspectionDashboardTile extends StatelessWidget {
   final InspectionProgressSummary summary;
   final bool selected;
   final VoidCallback onTap;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -1346,11 +1427,21 @@ class _InspectionDashboardTile extends StatelessWidget {
           subtitle: Text(
             '$date | ${summary.evidenceCount} ${strings.evidence} | ${summary.signatureCount} ${strings.signatures}',
           ),
-          trailing: _StatusPill(
-            label: summary.canExport
-                ? strings.readyToExport
-                : strings.inProgress,
-            emphasized: summary.canExport,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _StatusPill(
+                label: summary.canExport
+                    ? strings.readyToExport
+                    : strings.inProgress,
+                emphasized: summary.canExport,
+              ),
+              IconButton(
+                tooltip: strings.deleteInspection,
+                onPressed: onDelete,
+                icon: const Icon(Icons.delete_outline),
+              ),
+            ],
           ),
         ),
       ),
@@ -1516,6 +1607,24 @@ class InspectionDetailPage extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
+        actions: [
+          IconButton(
+            tooltip: strings.deleteInspection,
+            onPressed: () async {
+              final confirmed = await _confirmDestructiveAction(
+                context: context,
+                strings: strings,
+                title: strings.deleteInspection,
+                message: strings.deleteInspectionMessage,
+              );
+              if (!confirmed || !context.mounted) return;
+              await store.deleteInspection(inspection.id);
+              if (!context.mounted) return;
+              Navigator.pop(context);
+            },
+            icon: const Icon(Icons.delete_outline),
+          ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -1783,8 +1892,14 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
   }
 
   Future<void> _addSignature() async {
-    final signature = await showDialog<SignatureRecord>(
+    final signature = await showModalBottomSheet<SignatureRecord>(
       context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: _warmSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
       builder: (context) => _SignatureDialog(
         strings: widget.strings,
         uuid: _uuid,
@@ -1798,6 +1913,38 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(widget.strings.signatureSaved)));
+  }
+
+  Future<void> _deleteSignature(SignatureRecord signature) async {
+    final confirmed = await _confirmDestructiveAction(
+      context: context,
+      strings: widget.strings,
+      title: widget.strings.deleteSignature,
+      message: widget.strings.deleteSignatureMessage,
+    );
+    if (!confirmed) return;
+    await widget.store.deleteSignature(signature.id);
+    await _load();
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(widget.strings.signatureDeleted)));
+  }
+
+  Future<void> _deleteEvidence(EvidenceItemRecord evidence) async {
+    final confirmed = await _confirmDestructiveAction(
+      context: context,
+      strings: widget.strings,
+      title: widget.strings.deleteEvidence,
+      message: widget.strings.deleteEvidenceMessage,
+    );
+    if (!confirmed) return;
+    await widget.store.deleteEvidence(evidence.id);
+    await _load();
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(widget.strings.evidenceDeleted)));
   }
 
   Future<void> _exportReport() async {
@@ -2050,12 +2197,23 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
           )
         else
           ...roomEvidence.map(
-            (item) => _EvidenceCard(item: item, strings: widget.strings),
+            (item) => _EvidenceCard(
+              item: item,
+              strings: widget.strings,
+              onDelete: () => _deleteEvidence(item),
+            ),
           ),
         const SizedBox(height: 18),
         _SectionHeader(
           title: widget.strings.signatures,
-          subtitle: widget.strings.signatureReady,
+          subtitle: _signatures.isEmpty
+              ? widget.strings.needsSignature
+              : widget.strings.signatureReady,
+          trailing: IconButton.filledTonal(
+            tooltip: widget.strings.addSignature,
+            onPressed: _addSignature,
+            icon: const Icon(Icons.draw_outlined),
+          ),
         ),
         const SizedBox(height: 10),
         if (_signatures.isEmpty)
@@ -2073,10 +2231,24 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
           )
         else
           ..._signatures.map(
-            (signature) => ListTile(
-              leading: const Icon(Icons.verified_user_outlined),
-              title: Text(signature.signerName),
-              subtitle: Text(signature.signerRole),
+            (signature) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _PremiumSurface(
+                padding: EdgeInsets.zero,
+                backgroundColor: Colors.white,
+                child: ListTile(
+                  leading: const Icon(Icons.verified_user_outlined),
+                  title: Text(signature.signerName),
+                  subtitle: Text(
+                    _signatureRoleLabel(widget.strings, signature.signerRole),
+                  ),
+                  trailing: IconButton(
+                    tooltip: widget.strings.deleteSignature,
+                    onPressed: () => _deleteSignature(signature),
+                    icon: const Icon(Icons.delete_outline),
+                  ),
+                ),
+              ),
             ),
           ),
         const SizedBox(height: 18),
@@ -2430,12 +2602,39 @@ class _ReportHistoryPanel extends StatefulWidget {
 }
 
 class _ReportHistoryPanelState extends State<_ReportHistoryPanel> {
-  late final Future<List<ReportArchiveEntry>> _reportsFuture = _loadReports();
+  late Future<List<ReportArchiveEntry>> _reportsFuture;
   ReportArchiveFilter _filter = ReportArchiveFilter.all;
+
+  @override
+  void initState() {
+    super.initState();
+    _reportsFuture = _loadReports();
+  }
 
   Future<List<ReportArchiveEntry>> _loadReports() async {
     final directory = await ReportExporter.reportsDirectory();
     return ReportArchive().scanDirectory(directory);
+  }
+
+  Future<void> _deleteReport(ReportArchiveEntry report) async {
+    final confirmed = await _confirmDestructiveAction(
+      context: context,
+      strings: widget.strings,
+      title: widget.strings.deleteReport,
+      message: widget.strings.deleteReportMessage,
+    );
+    if (!confirmed) return;
+    if (await report.pdfFile.exists()) {
+      await report.pdfFile.delete();
+    }
+    if (await report.manifestFile.exists()) {
+      await report.manifestFile.delete();
+    }
+    if (!mounted) return;
+    setState(() => _reportsFuture = _loadReports());
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(widget.strings.reportDeleted)));
   }
 
   @override
@@ -2639,6 +2838,11 @@ class _ReportHistoryPanelState extends State<_ReportHistoryPanel> {
                                   onPressed: () => _sharePdf(report.pdfFile),
                                   icon: const Icon(Icons.ios_share_outlined),
                                 ),
+                                IconButton(
+                                  tooltip: widget.strings.deleteReport,
+                                  onPressed: () => _deleteReport(report),
+                                  icon: const Icon(Icons.delete_outline),
+                                ),
                               ],
                             ),
                           ],
@@ -2772,10 +2976,15 @@ class _MoreTile extends StatelessWidget {
 }
 
 class _EvidenceCard extends StatelessWidget {
-  const _EvidenceCard({required this.item, required this.strings});
+  const _EvidenceCard({
+    required this.item,
+    required this.strings,
+    required this.onDelete,
+  });
 
   final EvidenceItemRecord item;
   final AppStrings strings;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -2887,6 +3096,12 @@ class _EvidenceCard extends StatelessWidget {
                           color: severityColor,
                           fontWeight: FontWeight.w800,
                         ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        tooltip: strings.deleteEvidence,
+                        onPressed: onDelete,
+                        icon: const Icon(Icons.delete_outline),
                       ),
                     ],
                   ),
@@ -3222,7 +3437,9 @@ class _SignatureDialogState extends State<_SignatureDialog> {
         id: widget.uuid.v4(),
         inspectionId: widget.inspectionId,
         signerRole: _role,
-        signerName: _name.text.trim().isEmpty ? _role : _name.text.trim(),
+        signerName: _name.text.trim().isEmpty
+            ? _signatureRoleLabel(widget.strings, _role)
+            : _name.text.trim(),
         signedAt: DateTime.now().toUtc(),
         signaturePath: signaturePath,
         signatureHash: signatureHash,
@@ -3232,76 +3449,143 @@ class _SignatureDialogState extends State<_SignatureDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: _warmSurface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      title: Text(widget.strings.addSignature),
-      content: SizedBox(
-        width: 420,
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final sheetWidth = (MediaQuery.sizeOf(context).width - 40).clamp(
+      0.0,
+      520.0,
+    );
+    return SafeArea(
+      top: false,
+      child: AnimatedPadding(
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOut,
+        padding: EdgeInsets.only(bottom: keyboardInset),
         child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const _HeroImage(
-                asset: 'assets/images/signature_verify.png',
-                height: 112,
-                fillWidth: false,
-              ),
-              const SizedBox(height: 12),
-              SegmentedButton<String>(
-                segments: [
-                  ButtonSegment(
-                    value: 'Tenant',
-                    label: Text(widget.strings.tenant),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          child: Center(
+            child: SizedBox(
+              width: sheetWidth,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    widget.strings.addSignature,
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
-                  ButtonSegment(
-                    value: 'Landlord',
-                    label: Text(widget.strings.landlord),
+                  const SizedBox(height: 10),
+                  const _HeroImage(
+                    asset: 'assets/images/signature_verify.png',
+                    height: 112,
+                    fillWidth: false,
+                  ),
+                  const SizedBox(height: 12),
+                  SegmentedButton<String>(
+                    segments: [
+                      ButtonSegment(
+                        value: 'Tenant',
+                        label: Text(widget.strings.tenant),
+                      ),
+                      ButtonSegment(
+                        value: 'Landlord',
+                        label: Text(widget.strings.landlord),
+                      ),
+                    ],
+                    selected: {_role},
+                    onSelectionChanged: (selection) =>
+                        setState(() => _role = selection.first),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _name,
+                    textInputAction: TextInputAction.done,
+                    decoration: InputDecoration(
+                      labelText: widget.strings.signerName,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    height: 220,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: _line),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x0A172321),
+                          blurRadius: 18,
+                          offset: Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Signature(
+                        controller: _controller,
+                        backgroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      TextButton(
+                        onPressed: _controller.clear,
+                        child: Text(widget.strings.clear),
+                      ),
+                      const Spacer(),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(widget.strings.cancel),
+                      ),
+                      const SizedBox(width: 8),
+                      FilledButton(
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(0, 48),
+                        ),
+                        onPressed: _save,
+                        child: Text(widget.strings.saveSignature),
+                      ),
+                    ],
                   ),
                 ],
-                selected: {_role},
-                onSelectionChanged: (selection) =>
-                    setState(() => _role = selection.first),
               ),
-              TextField(
-                controller: _name,
-                decoration: InputDecoration(
-                  labelText: widget.strings.signerName,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                height: 180,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: _line),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Signature(
-                  controller: _controller,
-                  backgroundColor: Colors.white,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: _controller.clear,
-          child: Text(widget.strings.clear),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(widget.strings.cancel),
-        ),
-        FilledButton(
-          onPressed: _save,
-          child: Text(widget.strings.saveSignature),
-        ),
-      ],
     );
   }
+}
+
+Future<bool> _confirmDestructiveAction({
+  required BuildContext context,
+  required AppStrings strings,
+  required String title,
+  required String message,
+}) async {
+  final result = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: _warmSurface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(title),
+      content: Text(message),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: Text(strings.cancel),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: _danger),
+          onPressed: () => Navigator.pop(context, true),
+          child: Text(strings.delete),
+        ),
+      ],
+    ),
+  );
+  return result ?? false;
 }
 
 Future<void> _sharePdf(File pdfFile) async {
@@ -3383,6 +3667,13 @@ String _typeLabel(AppStrings strings, InspectionType type) {
     InspectionType.moveIn => strings.moveIn,
     InspectionType.moveOut => strings.moveOut,
     InspectionType.general => strings.generalInspection,
+  };
+}
+
+String _signatureRoleLabel(AppStrings strings, String role) {
+  return switch (role) {
+    'Landlord' => strings.landlord,
+    _ => strings.tenant,
   };
 }
 

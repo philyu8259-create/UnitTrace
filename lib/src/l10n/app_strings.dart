@@ -280,6 +280,30 @@ class AppStrings {
   String get pdfPreview => isChinese ? 'PDF 预览' : 'PDF preview';
   String get ok => isChinese ? '确定' : 'OK';
   String get cancel => isChinese ? '取消' : 'Cancel';
+  String get delete => isChinese ? '删除' : 'Delete';
+  String get deleteProperty => isChinese ? '删除房屋' : 'Delete property';
+  String get deleteInspection => isChinese ? '删除检查' : 'Delete inspection';
+  String get deleteEvidence => isChinese ? '删除证据' : 'Delete evidence';
+  String get deleteReport => isChinese ? '删除报告' : 'Delete report';
+  String get deleteSignature => isChinese ? '删除签名' : 'Delete signature';
+  String get deletePropertyMessage => isChinese
+      ? '这会删除该房屋下的所有检查、房间、证据和签名。本机已导出的报告不会自动删除。'
+      : 'This deletes every inspection, room, evidence item, and signature under this property. Exported local reports are not deleted automatically.';
+  String get deleteInspectionMessage => isChinese
+      ? '这会删除这次检查下的房间、证据和签名。本机已导出的报告不会自动删除。'
+      : 'This deletes rooms, evidence, and signatures for this inspection. Exported local reports are not deleted automatically.';
+  String get deleteEvidenceMessage =>
+      isChinese ? '这会删除这条证据记录。' : 'This deletes this evidence record.';
+  String get deleteReportMessage => isChinese
+      ? '这会删除本机保存的 PDF 和 JSON 证据清单，不会删除原检查数据。'
+      : 'This deletes the local PDF and JSON manifest. The original inspection data stays intact.';
+  String get deleteSignatureMessage =>
+      isChinese ? '这会删除这条签名记录。' : 'This deletes this signature record.';
+  String get propertyDeleted => isChinese ? '房屋已删除' : 'Property deleted';
+  String get inspectionDeleted => isChinese ? '检查已删除' : 'Inspection deleted';
+  String get evidenceDeleted => isChinese ? '证据已删除' : 'Evidence deleted';
+  String get reportDeleted => isChinese ? '报告已删除' : 'Report deleted';
+  String get signatureDeleted => isChinese ? '签名已删除' : 'Signature deleted';
   String get good => isChinese ? '良好' : 'Good';
   String get reportIdLabel => isChinese ? '报告ID' : 'Report ID';
   String get note => isChinese ? '备注' : 'Note';

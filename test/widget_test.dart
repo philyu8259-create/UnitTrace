@@ -143,6 +143,89 @@ void main() {
     await tester.tap(find.text('Save signature'));
     await tester.pumpAndSettle();
     expect(find.text('Alex Tenant'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.byTooltip('Add signature'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.byTooltip('Add signature'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Landlord'));
+    await tester.enterText(find.byType(TextField).last, 'Laura Landlord');
+    await tester.tap(find.text('Save signature'));
+    await tester.pumpAndSettle();
+    expect(find.text('Laura Landlord'), findsOneWidget);
+    expect(
+      (await store.loadSignatures(
+        inspections.single.id,
+      )).map((signature) => signature.signerName),
+      containsAll(<String>['Alex Tenant', 'Laura Landlord']),
+    );
+  });
+
+  testWidgets('deletes inspections and properties with confirmation', (
+    tester,
+  ) async {
+    final store = InMemoryUnitTraceStore();
+    await tester.pumpWidget(
+      UnitTraceApp(
+        store: store,
+        initialLocale: const Locale('en'),
+        captureLocation: false,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tapCreateProperty(tester);
+    await tester.enterText(
+      find.byKey(const Key('property-name-field')),
+      'Oak Street Apt',
+    );
+    await tester.enterText(
+      find.byKey(const Key('property-address-field')),
+      '12 Oak Street',
+    );
+    await tester.tap(find.text('Save property'));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('Move-in').first,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('Move-in').first);
+    await tester.pumpAndSettle();
+    for (var i = 0; i < 10 && (await store.loadInspections()).isEmpty; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(await store.loadInspections(), hasLength(1));
+
+    await tester.tap(find.byTooltip('Delete inspection'));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete inspection'), findsWidgets);
+    await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+    await tester.pumpAndSettle();
+    expect(await store.loadInspections(), isEmpty);
+    expect(find.text('Evidence Desk'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.byTooltip('Delete property'),
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byTooltip('Delete property'));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete property'), findsWidgets);
+    await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+    await tester.pumpAndSettle();
+    expect(await store.loadProperties(), isEmpty);
+    expect(
+      find.text(
+        'No properties yet. Create a property to start an evidence report.',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets(

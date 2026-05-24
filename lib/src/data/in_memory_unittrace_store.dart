@@ -65,4 +65,37 @@ class InMemoryUnitTraceStore implements UnitTraceStore {
     _signatures.removeWhere((item) => item.id == signature.id);
     _signatures.add(signature);
   }
+
+  @override
+  Future<void> deleteProperty(String propertyId) async {
+    final inspectionIds = _inspections
+        .where((item) => item.propertyId == propertyId)
+        .map((item) => item.id)
+        .toSet();
+    _properties.removeWhere((item) => item.id == propertyId);
+    _inspections.removeWhere((item) => inspectionIds.contains(item.id));
+    _rooms.removeWhere((item) => inspectionIds.contains(item.inspectionId));
+    _evidence.removeWhere((item) => inspectionIds.contains(item.inspectionId));
+    _signatures.removeWhere(
+      (item) => inspectionIds.contains(item.inspectionId),
+    );
+  }
+
+  @override
+  Future<void> deleteInspection(String inspectionId) async {
+    _inspections.removeWhere((item) => item.id == inspectionId);
+    _rooms.removeWhere((item) => item.inspectionId == inspectionId);
+    _evidence.removeWhere((item) => item.inspectionId == inspectionId);
+    _signatures.removeWhere((item) => item.inspectionId == inspectionId);
+  }
+
+  @override
+  Future<void> deleteEvidence(String evidenceId) async {
+    _evidence.removeWhere((item) => item.id == evidenceId);
+  }
+
+  @override
+  Future<void> deleteSignature(String signatureId) async {
+    _signatures.removeWhere((item) => item.id == signatureId);
+  }
 }
