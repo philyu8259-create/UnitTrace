@@ -1,0 +1,4 @@
+"CFBundleDisplayName" = "房况留证";
+"NSCameraUsageDescription" = "房况留证需要使用相机拍摄租房交接和房况证据照片。";
+"NSLocationWhenInUseUsageDescription" = "在你允许时，房况留证会把大致位置信息加入本地证据报告。";
+"NSPhotoLibraryUsageDescription" = "房况留证允许你从相册选择照片，并加入本地证据报告。";

@@ -1,0 +1,4 @@
+"CFBundleDisplayName" = "UnitTrace";
+"NSCameraUsageDescription" = "UnitTrace uses the camera to capture rental condition evidence photos.";
+"NSLocationWhenInUseUsageDescription" = "UnitTrace can add approximate location metadata to evidence reports when you allow it.";
+"NSPhotoLibraryUsageDescription" = "UnitTrace lets you choose existing photos to include in local evidence reports.";
