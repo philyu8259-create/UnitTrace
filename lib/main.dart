@@ -35,6 +35,8 @@ const _line = Color(0xFFE4E0D8);
 const _brass = Color(0xFFD49A36);
 const _danger = Color(0xFF9D3D2F);
 const _appIconAsset = 'assets/app_icon/unittrace_icon_source.png';
+const _wideLayoutBreakpoint = 900.0;
+const _compactContentMaxWidth = 520.0;
 Uri _privacyPolicyUriFor(AppStrings strings) => Uri.parse(
   strings.isChinese
       ? 'https://philyu8259-create.github.io/UnitTrace/privacy-policy-zh.html'
@@ -425,7 +427,7 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final wide = constraints.maxWidth >= 760;
+            final wide = constraints.maxWidth >= _wideLayoutBreakpoint;
             final sidebar = _DashboardSidebar(
               strings: strings,
               properties: _properties,
@@ -467,26 +469,47 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
                     property: _selectedProperty!,
                   );
             if (!wide) {
+              final compactInset =
+                  (constraints.maxWidth - _compactContentMaxWidth) / 2;
+              final horizontalInset = compactInset > 0 ? compactInset : 0.0;
               final tabBody = switch (_mobileTabIndex) {
-                0 => ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 132),
-                  children: [
-                    sidebar,
-                    if (_selectedProperty == null) ...[
-                      const SizedBox(height: 16),
-                      content,
+                0 => SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(
+                    16 + horizontalInset,
+                    16,
+                    16 + horizontalInset,
+                    132,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      sidebar,
+                      if (_selectedProperty == null) ...[
+                        const SizedBox(height: 16),
+                        content,
+                      ],
                     ],
-                  ],
+                  ),
                 ),
                 1 => _ReportHistoryPanel(
                   strings: strings,
                   showClose: false,
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 132),
+                  padding: EdgeInsets.fromLTRB(
+                    16 + horizontalInset,
+                    16,
+                    16 + horizontalInset,
+                    132,
+                  ),
                   onOpenInspection: () => setState(() => _mobileTabIndex = 0),
                 ),
                 _ => _MorePanel(
                   strings: strings,
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 132),
+                  padding: EdgeInsets.fromLTRB(
+                    16 + horizontalInset,
+                    16,
+                    16 + horizontalInset,
+                    132,
+                  ),
                   proController: widget.proController,
                 ),
               };
@@ -527,7 +550,8 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
           },
         ),
       ),
-      bottomNavigationBar: MediaQuery.sizeOf(context).width >= 760
+      bottomNavigationBar:
+          MediaQuery.sizeOf(context).width >= _wideLayoutBreakpoint
           ? null
           : _FloatingMobileTabs(
               strings: strings,
@@ -617,47 +641,53 @@ class _FloatingMobileTabs extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       minimum: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.88),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: AppColors.hairline),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x1A0D3F3A),
-                  blurRadius: 14,
-                  offset: Offset(0, 6),
+      child: Center(
+        heightFactor: 1,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: _compactContentMaxWidth),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.88),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: AppColors.hairline),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x1A0D3F3A),
+                      blurRadius: 14,
+                      offset: Offset(0, 6),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: NavigationBar(
-              selectedIndex: index,
-              onDestinationSelected: onChanged,
-              height: 60,
-              backgroundColor: Colors.transparent,
-              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-              indicatorColor: _mist,
-              destinations: [
-                NavigationDestination(
-                  icon: const Icon(Icons.apartment_outlined),
-                  selectedIcon: const Icon(Icons.apartment),
-                  label: strings.propertiesTab,
+                child: NavigationBar(
+                  selectedIndex: index,
+                  onDestinationSelected: onChanged,
+                  height: 60,
+                  backgroundColor: Colors.transparent,
+                  labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+                  indicatorColor: _mist,
+                  destinations: [
+                    NavigationDestination(
+                      icon: const Icon(Icons.apartment_outlined),
+                      selectedIcon: const Icon(Icons.apartment),
+                      label: strings.propertiesTab,
+                    ),
+                    NavigationDestination(
+                      icon: const Icon(Icons.folder_copy_outlined),
+                      selectedIcon: const Icon(Icons.folder_copy),
+                      label: strings.reportsTab,
+                    ),
+                    NavigationDestination(
+                      icon: const Icon(Icons.more_horiz),
+                      selectedIcon: const Icon(Icons.more),
+                      label: strings.moreTab,
+                    ),
+                  ],
                 ),
-                NavigationDestination(
-                  icon: const Icon(Icons.folder_copy_outlined),
-                  selectedIcon: const Icon(Icons.folder_copy),
-                  label: strings.reportsTab,
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.more_horiz),
-                  selectedIcon: const Icon(Icons.more),
-                  label: strings.moreTab,
-                ),
-              ],
+              ),
             ),
           ),
         ),

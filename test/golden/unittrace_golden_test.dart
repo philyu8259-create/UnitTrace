@@ -75,7 +75,13 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Continue inspection'));
+    final continueButton = find.widgetWithText(
+      FilledButton,
+      'Continue inspection',
+    );
+    await tester.ensureVisible(continueButton);
+    await tester.pumpAndSettle();
+    await tester.tap(continueButton, warnIfMissed: false);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.text('Room checklist'),

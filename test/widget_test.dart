@@ -197,7 +197,7 @@ Future<void> tapInspectionType(WidgetTester tester, String label) async {
     180,
     scrollable: find.byType(Scrollable).first,
   );
-  await tester.drag(find.byType(Scrollable).first, const Offset(0, -160));
+  await tester.drag(find.byType(Scrollable).first, const Offset(0, 140));
   await tester.pumpAndSettle();
   final card = find
       .ancestor(of: find.text(label).last, matching: find.byType(InkWell))
@@ -231,6 +231,7 @@ void main() {
         store: InMemoryUnitTraceStore(),
         initialLocale: const Locale('en'),
         captureLocation: false,
+        proController: testProController(),
       ),
     );
     await tester.pumpAndSettle();
@@ -261,6 +262,7 @@ void main() {
         store: InMemoryUnitTraceStore(),
         initialLocale: const Locale('zh', 'Hans'),
         captureLocation: false,
+        proController: testProController(),
       ),
     );
     await tester.pumpAndSettle();
@@ -291,6 +293,7 @@ void main() {
         store: InMemoryUnitTraceStore(),
         initialLocale: const Locale('en'),
         captureLocation: false,
+        proController: testProController(),
       ),
     );
     await tester.pumpAndSettle();
@@ -352,6 +355,7 @@ void main() {
         store: InMemoryUnitTraceStore(),
         initialLocale: const Locale('zh', 'Hans'),
         captureLocation: false,
+        proController: testProController(),
       ),
     );
     await tester.pumpAndSettle();
@@ -406,6 +410,7 @@ void main() {
         store: InMemoryUnitTraceStore(),
         initialLocale: const Locale('zh', 'Hans'),
         captureLocation: false,
+        proController: testProController(),
       ),
     );
     await tester.pumpAndSettle();
@@ -432,6 +437,7 @@ void main() {
         store: InMemoryUnitTraceStore(),
         initialLocale: const Locale('en'),
         captureLocation: false,
+        proController: testProController(),
       ),
     );
     await tester.pumpAndSettle();
@@ -636,6 +642,7 @@ void main() {
         store: store,
         initialLocale: const Locale('en'),
         captureLocation: false,
+        proController: testProController(),
         signatureExporter: (_) async {
           signatureExportCount += 1;
           return testSignaturePngBytes;
@@ -774,6 +781,7 @@ void main() {
         store: store,
         initialLocale: const Locale('en'),
         captureLocation: false,
+        proController: testProController(),
       ),
     );
     await tester.pumpAndSettle();
@@ -843,6 +851,7 @@ void main() {
           store: store,
           initialLocale: const Locale('en'),
           captureLocation: false,
+          proController: testProController(),
         ),
       );
       await tester.pumpAndSettle();
@@ -902,6 +911,7 @@ void main() {
         store: store,
         initialLocale: const Locale('en'),
         captureLocation: false,
+        proController: testProController(),
         imagePicker: EmptyCameraPicker(),
       ),
     );
@@ -947,6 +957,7 @@ void main() {
         store: InMemoryUnitTraceStore(),
         initialLocale: const Locale('en'),
         captureLocation: false,
+        proController: testProController(),
       ),
     );
     await tester.pumpAndSettle();

@@ -53,6 +53,8 @@ const _scenarios = [
   _ResponsiveScenario('standard iPhone', Size(390, 844)),
   _ResponsiveScenario('iPhone Pro Max', Size(440, 956)),
   _ResponsiveScenario('iPad portrait', Size(768, 1024)),
+  _ResponsiveScenario('iPad 11 portrait', Size(834, 1194)),
+  _ResponsiveScenario('iPad landscape', Size(1194, 834)),
   _ResponsiveScenario('Android small', Size(360, 740)),
 ];
 
