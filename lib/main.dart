@@ -7,8 +7,10 @@ import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:printing/printing.dart';
 import 'package:signature/signature.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
 
 import 'src/data/sqlite_unittrace_store.dart';
@@ -32,6 +34,17 @@ const _line = Color(0xFFE4E0D8);
 const _brass = Color(0xFFD49A36);
 const _danger = Color(0xFF9D3D2F);
 const _mvpPropertyLimit = 2;
+Uri _privacyPolicyUriFor(AppStrings strings) => Uri.parse(
+  strings.isChinese
+      ? 'https://philyu8259-create.github.io/UnitTrace/privacy-policy-zh.html'
+      : 'https://philyu8259-create.github.io/UnitTrace/privacy-policy-en.html',
+);
+
+Uri _supportUriFor(AppStrings strings) => Uri.parse(
+  strings.isChinese
+      ? 'https://philyu8259-create.github.io/UnitTrace/support-zh.html'
+      : 'https://philyu8259-create.github.io/UnitTrace/support-en.html',
+);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -2931,6 +2944,16 @@ class _MorePanel extends StatelessWidget {
   final AppStrings strings;
   final EdgeInsetsGeometry padding;
 
+  Future<void> _openLink(BuildContext context, Uri uri) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(strings.linkOpenFailed(uri.toString()))),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListView(
@@ -2950,12 +2973,12 @@ class _MorePanel extends StatelessWidget {
             _GuideStepData(
               icon: Icons.privacy_tip_outlined,
               title: strings.privacyPolicy,
-              body: strings.linkPending,
+              body: strings.privacySubtitle,
             ),
             _GuideStepData(
               icon: Icons.support_agent_outlined,
               title: strings.support,
-              body: strings.linkPending,
+              body: strings.supportSubtitle,
             ),
           ],
         ),
@@ -2987,12 +3010,16 @@ class _MorePanel extends StatelessWidget {
         _MoreTile(
           icon: Icons.privacy_tip_outlined,
           title: strings.privacyPolicy,
-          subtitle: strings.linkPending,
+          subtitle: strings.privacySubtitle,
+          trailing: const Icon(Icons.open_in_new_outlined),
+          onTap: () => _openLink(context, _privacyPolicyUriFor(strings)),
         ),
         _MoreTile(
           icon: Icons.support_agent_outlined,
           title: strings.support,
-          subtitle: strings.linkPending,
+          subtitle: strings.supportSubtitle,
+          trailing: const Icon(Icons.open_in_new_outlined),
+          onTap: () => _openLink(context, _supportUriFor(strings)),
         ),
         _MoreTile(
           icon: Icons.restore_outlined,
@@ -3007,7 +3034,16 @@ class _MorePanel extends StatelessWidget {
         _MoreTile(
           icon: Icons.info_outline,
           title: strings.version,
-          subtitle: '1.0.0',
+          subtitleWidget: FutureBuilder<PackageInfo>(
+            future: PackageInfo.fromPlatform(),
+            builder: (context, snapshot) {
+              final info = snapshot.data;
+              final version = info == null
+                  ? strings.loading
+                  : '${info.version} (${info.buildNumber})';
+              return Text(version);
+            },
+          ),
         ),
       ],
     );
@@ -3018,12 +3054,18 @@ class _MoreTile extends StatelessWidget {
   const _MoreTile({
     required this.icon,
     required this.title,
-    required this.subtitle,
+    this.subtitle,
+    this.subtitleWidget,
+    this.trailing,
+    this.onTap,
   });
 
   final IconData icon;
   final String title;
-  final String subtitle;
+  final String? subtitle;
+  final Widget? subtitleWidget;
+  final Widget? trailing;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -3032,9 +3074,11 @@ class _MoreTile extends StatelessWidget {
       child: _PremiumSurface(
         padding: EdgeInsets.zero,
         child: ListTile(
+          onTap: onTap,
           leading: Icon(icon, color: _deepEmerald),
           title: Text(title),
-          subtitle: Text(subtitle),
+          subtitle: subtitleWidget ?? Text(subtitle ?? ''),
+          trailing: trailing,
         ),
       ),
     );

@@ -259,11 +259,18 @@ class AppStrings {
       : 'Unlock more properties, watermark-free PDFs, export history, and comparison reports later.';
   String get privacyPolicy => isChinese ? '隐私政策' : 'Privacy Policy';
   String get support => isChinese ? '支持与反馈' : 'Support';
+  String get privacySubtitle => isChinese
+      ? '查看本地优先、无账号、照片不上传的隐私说明。'
+      : 'Review the local-first privacy policy. No account and no photo upload.';
+  String get supportSubtitle => isChinese
+      ? '查看联系方式、反馈渠道和常见支持说明。'
+      : 'View contact, feedback, and support information.';
   String get restorePurchases => isChinese ? '恢复购买' : 'Restore Purchases';
   String get version => isChinese ? '版本' : 'Version';
   String get comingSoon => isChinese ? '即将开放' : 'Coming soon';
-  String get linkPending =>
-      isChinese ? '上架前配置链接' : 'Link to be configured before release';
+  String get loading => isChinese ? '加载中' : 'Loading';
+  String linkOpenFailed(String url) =>
+      isChinese ? '无法打开链接：$url' : 'Could not open link: $url';
   String get disclaimerTitle => isChinese ? '免责声明' : 'Disclaimer';
   String get reportHistory => isChinese ? '报告历史' : 'Report history';
   String get reportArchiveBadge =>

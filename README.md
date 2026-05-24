@@ -19,3 +19,14 @@ flutter analyze
 flutter build ios --simulator --debug
 flutter build apk --debug
 ```
+
+## Public Pages
+
+The iOS "More" tab opens language-specific GitHub Pages URLs. Before App Store
+submission, enable GitHub Pages for this repository or replace these URLs with
+the production support domain:
+
+- Privacy Policy (English): `https://philyu8259-create.github.io/UnitTrace/privacy-policy-en.html`
+- Privacy Policy (Chinese): `https://philyu8259-create.github.io/UnitTrace/privacy-policy-zh.html`
+- Support (English): `https://philyu8259-create.github.io/UnitTrace/support-en.html`
+- Support (Chinese): `https://philyu8259-create.github.io/UnitTrace/support-zh.html`
