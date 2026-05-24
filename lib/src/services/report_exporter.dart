@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
+import 'package:image/image.dart' as img;
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -97,7 +98,13 @@ class ReportExporter {
     final doc = pw.Document();
     final dateFormat = DateFormat('yyyy-MM-dd HH:mm');
     final coverData = await rootBundle.load('assets/images/report_cover.png');
-    final cover = pw.MemoryImage(coverData.buffer.asUint8List());
+    final cover = pw.MemoryImage(
+      _prepareRasterForPdf(
+        coverData.buffer.asUint8List(),
+        maxDimension: 520,
+        preferJpeg: true,
+      ),
+    );
     final baseFontData = await rootBundle.load(
       'assets/fonts/NotoSansSC-Regular.ttf',
     );
@@ -123,7 +130,7 @@ class ReportExporter {
         build: (context) => [
           _coverHeader(
             cover: cover,
-            title: labels.reportTitle,
+            title: labels.reportTitle(manifest.inspection.type),
             subtitle: strings.trustedOffline,
             property: manifest.property,
             generatedAt: generatedAt,
@@ -379,12 +386,17 @@ class ReportExporter {
         try {
           final bytes = signatureFile.readAsBytesSync();
           if (bytes.isNotEmpty) {
+            final pdfBytes = _prepareRasterForPdf(
+              bytes,
+              maxDimension: 520,
+              preferJpeg: false,
+            );
             signatureImage = pw.Container(
               height: 54,
               alignment: pw.Alignment.centerLeft,
               margin: const pw.EdgeInsets.only(top: 8),
               child: pw.Image(
-                pw.MemoryImage(bytes),
+                pw.MemoryImage(pdfBytes),
                 height: 50,
                 fit: pw.BoxFit.contain,
               ),
@@ -434,7 +446,11 @@ class ReportExporter {
     final photoMissing =
         item.photoPath != null && !File(item.photoPath!).existsSync();
     if (item.photoPath != null && !photoMissing) {
-      final bytes = File(item.photoPath!).readAsBytesSync();
+      final bytes = _prepareRasterForPdf(
+        File(item.photoPath!).readAsBytesSync(),
+        maxDimension: 900,
+        preferJpeg: true,
+      );
       image = pw.Image(
         pw.MemoryImage(bytes),
         width: 120,
@@ -556,6 +572,33 @@ class ReportExporter {
           .toList(),
     );
   }
+
+  Uint8List _prepareRasterForPdf(
+    Uint8List bytes, {
+    required int maxDimension,
+    required bool preferJpeg,
+  }) {
+    final decoded = img.decodeImage(bytes);
+    if (decoded == null) return bytes;
+
+    final longestSide = decoded.width > decoded.height
+        ? decoded.width
+        : decoded.height;
+    final image = longestSide > maxDimension
+        ? img.copyResize(
+            decoded,
+            width: decoded.width >= decoded.height ? maxDimension : null,
+            height: decoded.height > decoded.width ? maxDimension : null,
+            interpolation: img.Interpolation.average,
+          )
+        : decoded;
+
+    final canUseJpeg = preferJpeg && !image.hasAlpha;
+    if (canUseJpeg) {
+      return Uint8List.fromList(img.encodeJpg(image, quality: 82));
+    }
+    return Uint8List.fromList(img.encodePng(image, level: 6));
+  }
 }
 
 class _ReportPdfLabels {
@@ -565,7 +608,11 @@ class _ReportPdfLabels {
 
   bool get isChinese => strings.isChinese;
 
-  String get reportTitle => isChinese ? '房况证据报告' : 'Property Evidence Report';
+  String reportTitle(InspectionType type) {
+    final typeName = inspectionTypeName(type);
+    return isChinese ? '$typeName房况证据报告' : '$typeName Property Evidence Report';
+  }
+
   String get reportDetails => isChinese ? '报告详情' : 'Report details';
   String get reportId => isChinese ? '报告 ID' : 'Report ID';
   String get inspectionType => isChinese ? '检查类型' : 'Inspection type';
@@ -603,7 +650,11 @@ class _ReportPdfLabels {
 
   String exifSummary(String summary) {
     if (!isChinese) return summary;
-    return summary.replaceAll('Source:', '来源：').replaceAll('File:', '文件：');
+    return summary
+        .replaceAll('Source:', '来源：')
+        .replaceAll('File:', '文件：')
+        .replaceAll('gallery', '相册')
+        .replaceAll('camera', '相机');
   }
 
   String inspectionTypeName(InspectionType type) {

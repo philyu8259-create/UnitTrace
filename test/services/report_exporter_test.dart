@@ -58,7 +58,8 @@ void main() {
     );
 
     expect(ascii.decode(bytes.take(4).toList()), '%PDF');
-    expect(bytes.length, greaterThan(100000));
+    expect(bytes.length, greaterThan(50000));
+    expect(bytes.length, lessThan(2000000));
   });
 
   test('embeds signature image bytes when a saved signature exists', () async {
