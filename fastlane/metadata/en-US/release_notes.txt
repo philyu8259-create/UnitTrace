@@ -1,0 +1,1 @@
+Initial release of UnitTrace: local property files, room-by-room evidence capture, signatures, PDF reports, JSON manifests, and Pro lifetime unlock.

@@ -80,6 +80,11 @@ flutter:
     - assets/images/signature_verify.png
     - assets/images/workbench_hero.png
     - assets/app_icon/unittrace_icon_source.png
+    - assets/screenshots/marketing_background.jpg
+    - assets/screenshots/sample_bathroom.jpg
+    - assets/screenshots/sample_entry.jpg
+    - assets/screenshots/sample_kitchen.jpg
+    - assets/screenshots/sample_living.jpg
     - assets/fonts/NotoSansSC-Regular.ttf
     - assets/fonts/NotoSansSC-Bold.ttf
   fonts:

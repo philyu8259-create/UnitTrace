@@ -1,0 +1,18 @@
+UnitTrace helps tenants, small landlords, and short-term rental hosts create local rental condition evidence records before move-in, move-out, repairs, or routine inspections.
+
+Build a clear evidence workflow:
+- Create a property file
+- Start a move-in, move-out, or general inspection
+- Capture photos or add text notes by room
+- Keep timestamp, location status, and SHA-256 photo hashes with each record
+- Collect tenant and landlord signatures
+- Generate a PDF evidence report and JSON manifest
+- Share exported files through the iOS share sheet
+
+Privacy-first by design:
+- No account required
+- Photos are not uploaded by UnitTrace
+- Properties, photos, signatures, PDF reports, and JSON manifests stay on your device unless you choose to share them
+- Camera, Photos, and Location permissions are used only for evidence capture and optional metadata
+
+UnitTrace is a documentation tool. It does not provide legal advice and does not guarantee any dispute outcome. Review your report and local requirements before relying on exported materials.

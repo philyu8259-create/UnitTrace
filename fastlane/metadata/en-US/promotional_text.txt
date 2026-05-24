@@ -1,0 +1,1 @@
+Create timestamped rental condition evidence with photos, signatures, hashes, and exportable PDF/JSON reports.

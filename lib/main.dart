@@ -14,7 +14,9 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
 
 import 'src/data/sqlite_unittrace_store.dart';
+import 'src/data/in_memory_unittrace_store.dart';
 import 'src/data/unittrace_store.dart';
+import 'src/debug/screenshot_seed.dart';
 import 'src/domain/entities.dart';
 import 'src/domain/inspection_progress.dart';
 import 'src/domain/room_templates.dart';
@@ -35,8 +37,14 @@ const _line = Color(0xFFE4E0D8);
 const _brass = Color(0xFFD49A36);
 const _danger = Color(0xFF9D3D2F);
 const _appIconAsset = 'assets/app_icon/unittrace_icon_source.png';
-const _wideLayoutBreakpoint = 900.0;
+const _wideLayoutBreakpoint = 1200.0;
 const _compactContentMaxWidth = 520.0;
+const _screenshotScenario = String.fromEnvironment(
+  'UNITTRACE_SCREENSHOT_SCENARIO',
+);
+const _screenshotLocaleCode = String.fromEnvironment(
+  'UNITTRACE_SCREENSHOT_LOCALE',
+);
 Uri _privacyPolicyUriFor(AppStrings strings) => Uri.parse(
   strings.isChinese
       ? 'https://philyu8259-create.github.io/UnitTrace/privacy-policy-zh.html'
@@ -55,6 +63,29 @@ final Uri _standardEulaUri = Uri.parse(
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (ScreenshotSeed.shouldSeed(_screenshotScenario)) {
+    final localeConfig = ScreenshotSeed.localeFor(_screenshotLocaleCode);
+    final store = InMemoryUnitTraceStore();
+    await ScreenshotSeed.populate(
+      store: store,
+      scenario: _screenshotScenario,
+      languageCode: localeConfig.languageCode,
+    );
+    final proController = await ScreenshotSeed.proController();
+    runApp(
+      UnitTraceApp(
+        store: store,
+        initialLocale: Locale.fromSubtags(
+          languageCode: localeConfig.localeTag.startsWith('zh') ? 'zh' : 'en',
+          scriptCode: localeConfig.localeTag.startsWith('zh') ? 'Hans' : null,
+        ),
+        captureLocation: false,
+        proController: proController,
+        screenshotScenario: _screenshotScenario,
+      ),
+    );
+    return;
+  }
   final store = await SqliteUnitTraceStore.open();
   runApp(UnitTraceApp(store: store));
 }
@@ -102,6 +133,7 @@ class UnitTraceApp extends StatelessWidget {
     this.imagePicker,
     this.signatureExporter = _defaultSignatureExporter,
     this.proController,
+    this.screenshotScenario,
   });
 
   final UnitTraceStore store;
@@ -110,11 +142,13 @@ class UnitTraceApp extends StatelessWidget {
   final UnitTraceImagePicker? imagePicker;
   final UnitTraceSignatureExporter signatureExporter;
   final ProEntitlementController? proController;
+  final String? screenshotScenario;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'UnitTrace',
+      debugShowCheckedModeBanner: false,
       locale: initialLocale,
       supportedLocales: const [Locale('en'), Locale('zh', 'Hans')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -125,6 +159,7 @@ class UnitTraceApp extends StatelessWidget {
         imagePicker: imagePicker ?? DefaultUnitTraceImagePicker(),
         signatureExporter: signatureExporter,
         proController: proController ?? ProEntitlementController.local(),
+        screenshotScenario: screenshotScenario,
       ),
     );
   }
@@ -138,6 +173,7 @@ class UnitTraceHome extends StatefulWidget {
     required this.imagePicker,
     required this.signatureExporter,
     required this.proController,
+    this.screenshotScenario,
   });
 
   final UnitTraceStore store;
@@ -145,6 +181,7 @@ class UnitTraceHome extends StatefulWidget {
   final UnitTraceImagePicker imagePicker;
   final UnitTraceSignatureExporter signatureExporter;
   final ProEntitlementController proController;
+  final String? screenshotScenario;
 
   @override
   State<UnitTraceHome> createState() => _UnitTraceHomeState();
@@ -161,6 +198,7 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
   PropertyRecord? _selectedProperty;
   InspectionRecord? _selectedInspection;
   int _mobileTabIndex = 0;
+  bool _openedScreenshotInspection = false;
   bool _loading = true;
 
   AppStrings get strings => AppStrings.of(context);
@@ -169,6 +207,11 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
   @override
   void initState() {
     super.initState();
+    _mobileTabIndex = switch (widget.screenshotScenario) {
+      ScreenshotSeed.reports => 1,
+      ScreenshotSeed.more => 2,
+      _ => 0,
+    };
     widget.proController.addListener(_onProChanged);
     _initializePro();
     _reload();
@@ -229,6 +272,24 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
       _loading = false;
     });
     _refreshExportedInspectionIds();
+    _maybeOpenScreenshotInspection();
+  }
+
+  void _maybeOpenScreenshotInspection() {
+    final shouldOpenInspection =
+        widget.screenshotScenario == ScreenshotSeed.inspection ||
+        widget.screenshotScenario == ScreenshotSeed.inspectionFinal;
+    if (!shouldOpenInspection || _openedScreenshotInspection) {
+      return;
+    }
+    final property = _selectedProperty;
+    final inspection = _selectedInspection;
+    if (property == null || inspection == null) return;
+    _openedScreenshotInspection = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _openInspectionDetail(property: property, inspection: inspection);
+    });
   }
 
   Future<void> _refreshExportedInspectionIds() async {
@@ -316,6 +377,7 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
           imagePicker: widget.imagePicker,
           signatureExporter: widget.signatureExporter,
           proController: widget.proController,
+          screenshotScenario: widget.screenshotScenario,
         ),
       ),
     );
@@ -1755,6 +1817,7 @@ class InspectionDetailPage extends StatelessWidget {
     required this.imagePicker,
     required this.signatureExporter,
     required this.proController,
+    this.screenshotScenario,
   });
 
   final UnitTraceStore store;
@@ -1764,10 +1827,13 @@ class InspectionDetailPage extends StatelessWidget {
   final UnitTraceImagePicker imagePicker;
   final UnitTraceSignatureExporter signatureExporter;
   final ProEntitlementController proController;
+  final String? screenshotScenario;
 
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
+    final screenshotInitialOffset =
+        screenshotScenario == ScreenshotSeed.inspectionFinal ? 980.0 : 0.0;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -1800,7 +1866,8 @@ class InspectionDetailPage extends StatelessWidget {
         ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: _InspectionDetailScrollView(
+          screenshotInitialOffset: screenshotInitialOffset,
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           child: InspectionWorkspace(
             key: ValueKey(inspection.id),
@@ -1815,6 +1882,59 @@ class InspectionDetailPage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _InspectionDetailScrollView extends StatefulWidget {
+  const _InspectionDetailScrollView({
+    required this.screenshotInitialOffset,
+    required this.padding,
+    required this.child,
+  });
+
+  final double screenshotInitialOffset;
+  final EdgeInsetsGeometry padding;
+  final Widget child;
+
+  @override
+  State<_InspectionDetailScrollView> createState() =>
+      _InspectionDetailScrollViewState();
+}
+
+class _InspectionDetailScrollViewState
+    extends State<_InspectionDetailScrollView> {
+  late final ScrollController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = ScrollController();
+    if (widget.screenshotInitialOffset > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await Future<void>.delayed(const Duration(milliseconds: 900));
+        if (!mounted || !_controller.hasClients) return;
+        final target = widget.screenshotInitialOffset.clamp(
+          0.0,
+          _controller.position.maxScrollExtent,
+        );
+        _controller.jumpTo(target);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      controller: _controller,
+      padding: widget.padding,
+      child: widget.child,
     );
   }
 }
