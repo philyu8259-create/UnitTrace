@@ -52,6 +52,7 @@ class AppStrings {
       isChinese ? '证据完整度' : 'Evidence completeness';
   String get roomsComplete => isChinese ? '房间完成' : 'Rooms complete';
   String get readyToExport => isChinese ? '可以生成报告' : 'Ready to export';
+  String get generatedReports => isChinese ? '已生成报告' : 'Reports generated';
   String get needSignatureLabel => isChinese ? '缺少签名' : 'Signature needed';
   String get caseIdLabel => isChinese ? '档案号' : 'Case ID';
   String get progressLabel => isChinese ? '进度' : 'Progress';

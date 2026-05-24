@@ -975,18 +975,6 @@ class _DashboardSidebar extends StatelessWidget {
             signatures:
                 signaturesByInspection[selectedInspection!.id] ?? const [],
           );
-    final readyInspectionCount = inspections
-        .where(
-          (inspection) =>
-              InspectionProgressSummary.build(
-                inspection: inspection,
-                rooms: roomsByInspection[inspection.id] ?? const [],
-                evidenceItems: evidenceByInspection[inspection.id] ?? const [],
-                signatures: signaturesByInspection[inspection.id] ?? const [],
-              ).canExport &&
-              !exportedInspectionIds.contains(inspection.id),
-        )
-        .length;
     final deskReady = selectedSummary?.canExport ?? false;
     final deskBadge = deskReady ? strings.verified : strings.localOnly;
     final Widget? primaryAction = selectedInspection == null
@@ -1074,9 +1062,9 @@ class _DashboardSidebar extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: _MetricBadge(
-                      value: '$readyInspectionCount',
-                      label: strings.readyToExport,
-                      icon: Icons.verified_outlined,
+                      value: '${exportedInspectionIds.length}',
+                      label: strings.generatedReports,
+                      icon: Icons.picture_as_pdf_outlined,
                     ),
                   ),
                 ],
