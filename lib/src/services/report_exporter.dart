@@ -10,6 +10,7 @@ import 'package:pdf/widgets.dart' as pw;
 
 import '../domain/entities.dart';
 import '../domain/report_manifest.dart';
+import '../domain/room_templates.dart';
 import '../l10n/app_strings.dart';
 import 'app_directories.dart';
 
@@ -186,7 +187,7 @@ class ReportExporter {
                       color: PdfColor.fromInt(0xFFE7F0EC),
                     ),
                     child: pw.Text(
-                      '${room.name} - ${items.length} ${labels.items}',
+                      '${labels.roomName(room.name)} - ${items.length} ${labels.items}',
                       style: pw.TextStyle(
                         fontSize: 13,
                         fontWeight: pw.FontWeight.bold,
@@ -686,6 +687,10 @@ class _ReportPdfLabels {
       InspectionType.moveOut => strings.moveOut,
       InspectionType.general => strings.generalInspection,
     };
+  }
+
+  String roomName(String roomName) {
+    return RoomTemplates.displayName(roomName, strings.languageCode);
   }
 
   String severityName(EvidenceSeverity severity) {

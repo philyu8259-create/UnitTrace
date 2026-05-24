@@ -2026,6 +2026,10 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
     ).showSnackBar(SnackBar(content: Text(widget.strings.evidenceDeleted)));
   }
 
+  String _roomName(RoomRecord room) {
+    return RoomTemplates.displayName(room.name, widget.strings.languageCode);
+  }
+
   Future<void> _exportReport() async {
     setState(() => _busy = true);
     try {
@@ -2216,7 +2220,7 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
           title: widget.strings.selectedRoomEvidence,
           subtitle: _selectedRoom == null
               ? widget.strings.hashReady
-              : '${widget.strings.roomDetail}: ${_selectedRoom!.name}',
+              : '${widget.strings.roomDetail}: ${_roomName(_selectedRoom!)}',
           trailing: Wrap(
             spacing: 8,
             children: [
@@ -2249,7 +2253,7 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
                     padding: const EdgeInsets.only(right: 8),
                     child: ChoiceChip(
                       label: Text(
-                        '${status.room.name} · ${status.evidenceCount}',
+                        '${_roomName(status.room)} · ${status.evidenceCount}',
                       ),
                       selected: status.room.id == _selectedRoom?.id,
                       onSelected: (_) =>
@@ -2426,6 +2430,7 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
         ...roomStatuses.map(
           (status) => _RoomChecklistCard(
             strings: widget.strings,
+            roomName: _roomName(status.room),
             status: status,
             selected: status.room.id == _selectedRoom?.id,
             onTap: () => setState(() => _selectedRoom = status.room),
@@ -2439,12 +2444,14 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
 class _RoomChecklistCard extends StatelessWidget {
   const _RoomChecklistCard({
     required this.strings,
+    required this.roomName,
     required this.status,
     required this.selected,
     required this.onTap,
   });
 
   final AppStrings strings;
+  final String roomName;
   final RoomChecklistStatus status;
   final bool selected;
   final VoidCallback onTap;
@@ -2499,7 +2506,7 @@ class _RoomChecklistCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        status.room.name,
+                        roomName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(

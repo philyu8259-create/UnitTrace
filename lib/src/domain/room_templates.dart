@@ -29,4 +29,21 @@ class RoomTemplates {
     }
     return defaultRoomsEn;
   }
+
+  static String displayName(String roomName, String languageCode) {
+    final index = _standardRoomIndex(roomName);
+    if (index == null) return roomName;
+    return forLanguageCode(languageCode)[index];
+  }
+
+  static int? _standardRoomIndex(String roomName) {
+    final normalized = roomName.trim().toLowerCase();
+    final englishIndex = defaultRoomsEn.indexWhere(
+      (name) => name.toLowerCase() == normalized,
+    );
+    if (englishIndex != -1) return englishIndex;
+    final chineseIndex = defaultRoomsZhHans.indexOf(roomName.trim());
+    if (chineseIndex != -1) return chineseIndex;
+    return null;
+  }
 }

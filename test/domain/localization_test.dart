@@ -41,5 +41,13 @@ void main() {
       '客厅',
       '厨房',
     ]);
+    expect(RoomTemplates.displayName('Entry', 'zh_Hans'), '玄关');
+    expect(RoomTemplates.displayName('Living room', 'zh_Hans'), '客厅');
+    expect(RoomTemplates.displayName('Bedroom', 'zh_Hans'), '卧室');
+    expect(RoomTemplates.displayName('浴室', 'en'), 'Bathroom');
+    expect(
+      RoomTemplates.displayName('Custom storage', 'zh_Hans'),
+      'Custom storage',
+    );
   });
 }
