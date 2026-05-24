@@ -39,6 +39,16 @@ Future<void> main() async {
   runApp(UnitTraceApp(store: store));
 }
 
+Future<Directory> _safeApplicationDocumentsDirectory() async {
+  try {
+    return await getApplicationDocumentsDirectory().timeout(
+      const Duration(milliseconds: 800),
+    );
+  } on Exception {
+    return Directory.systemTemp;
+  }
+}
+
 abstract class UnitTraceImagePicker {
   Future<XFile?> pickImage({required ImageSource source, int? imageQuality});
 
@@ -1705,6 +1715,7 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
   List<SignatureRecord> _signatures = [];
   RoomRecord? _selectedRoom;
   ReportExportResult? _lastReport;
+  String? _documentsPath;
   bool _busy = true;
   bool _locationExplained = false;
 
@@ -1715,6 +1726,7 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
   }
 
   Future<void> _load() async {
+    final documentsDirectory = await _safeApplicationDocumentsDirectory();
     final rooms = await widget.store.loadRooms(widget.inspection.id);
     final evidence = await widget.store.loadEvidence(widget.inspection.id);
     final signatures = await widget.store.loadSignatures(widget.inspection.id);
@@ -1723,9 +1735,22 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
       _rooms = rooms;
       _evidence = evidence;
       _signatures = signatures;
+      _documentsPath = documentsDirectory.path;
       _selectedRoom ??= rooms.firstOrNull;
       _busy = false;
     });
+  }
+
+  File? _resolveEvidencePhotoFile(String? photoPath) {
+    if (photoPath == null || photoPath.isEmpty) return null;
+    final directFile = File(photoPath);
+    if (directFile.existsSync()) return directFile;
+    final documentsPath = _documentsPath;
+    if (documentsPath == null) return directFile;
+    final candidate = p.isAbsolute(photoPath)
+        ? File(p.join(documentsPath, 'evidence', p.basename(photoPath)))
+        : File(p.join(documentsPath, photoPath));
+    return candidate.existsSync() ? candidate : directFile;
   }
 
   Future<void> _addEvidence({required ImageSource? source}) async {
@@ -1787,7 +1812,7 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
         description: result.description,
         severity: result.severity,
         capturedAt: capturedAt,
-        photoPath: photo?.photoPath,
+        photoPath: photo?.storedPhotoPath,
         photoHash: photo?.photoHash,
         latitude: position?.latitude,
         longitude: position?.longitude,
@@ -1880,7 +1905,7 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
         return const [];
       }
 
-      final directory = await getApplicationDocumentsDirectory();
+      final directory = await _safeApplicationDocumentsDirectory();
       final evidenceDirectory = Directory(p.join(directory.path, 'evidence'));
       await evidenceDirectory.create(recursive: true);
       final photos = <_PickedEvidencePhoto>[];
@@ -1888,15 +1913,15 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
         final extension = p.extension(image.path).isEmpty
             ? '.jpg'
             : p.extension(image.path);
-        final photoPath = p.join(
-          evidenceDirectory.path,
-          '${_uuid.v4()}$extension',
-        );
+        final fileName = '${_uuid.v4()}$extension';
+        final photoPath = p.join(evidenceDirectory.path, fileName);
+        final storedPhotoPath = p.join('evidence', fileName);
         await File(image.path).copy(photoPath);
         final photoHash = await HashService.sha256ForFile(File(photoPath));
         photos.add(
           _PickedEvidencePhoto(
             photoPath: photoPath,
+            storedPhotoPath: storedPhotoPath,
             photoHash: photoHash,
             exifSummary:
                 'Source: ${source.name}; File: ${p.basename(photoPath)}',
@@ -2086,21 +2111,21 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
                   _TrustPill(
                     icon: Icons.photo_library_outlined,
                     label:
-                        '${widget.strings.photo}: ${summary.photoCount} ${widget.strings.photos}',
+                        '${widget.strings.photo}: ${widget.strings.photoMetric(summary.photoCount)}',
                     verified: summary.photoCount > 0,
                     uppercase: false,
                   ),
                   _TrustPill(
                     icon: Icons.fingerprint,
                     label:
-                        '${widget.strings.hashStatus}: ${summary.hashCount} ${widget.strings.hashCaptured}',
+                        '${widget.strings.hashStatus}: ${widget.strings.hashMetric(summary.hashCount)}',
                     verified: summary.hashCount > 0,
                     uppercase: false,
                   ),
                   _TrustPill(
                     icon: Icons.location_on_outlined,
                     label:
-                        '${widget.strings.locationStatus}: ${summary.locationCount} ${widget.strings.locationCaptured}',
+                        '${widget.strings.locationStatus}: ${widget.strings.locationMetric(summary.locationCount)}',
                     verified: summary.locationCount > 0,
                     uppercase: false,
                   ),
@@ -2183,6 +2208,12 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
                 onPressed: () => _addEvidence(source: ImageSource.gallery),
                 icon: const Icon(Icons.photo_library_outlined),
               ),
+              if (roomEvidence.isNotEmpty)
+                IconButton.filledTonal(
+                  tooltip: widget.strings.addNote,
+                  onPressed: () => _addEvidence(source: null),
+                  icon: const Icon(Icons.note_add_outlined),
+                ),
             ],
           ),
         ),
@@ -2225,6 +2256,7 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
           ...roomEvidence.map(
             (item) => _EvidenceCard(
               item: item,
+              photoFile: _resolveEvidencePhotoFile(item.photoPath),
               strings: widget.strings,
               onDelete: () => _deleteEvidence(item),
             ),
@@ -2454,7 +2486,7 @@ class _RoomChecklistCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${status.evidenceCount} ${strings.evidence} · ${status.photoCount} ${strings.photos}',
+                        '${status.evidenceCount} ${strings.evidence} · ${strings.photoCountLabel(status.photoCount)}',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                       const SizedBox(height: 8),
@@ -2482,7 +2514,7 @@ class _RoomChecklistCard extends StatelessWidget {
                             label: '${status.issueCount} ${strings.issue}',
                           ),
                           _StatusPill(
-                            label: '${status.photoCount} ${strings.takePhoto}',
+                            label: strings.photoCountLabel(status.photoCount),
                           ),
                           _StatusPill(
                             label: status.hashReady
@@ -3018,11 +3050,13 @@ class _MoreTile extends StatelessWidget {
 class _EvidenceCard extends StatelessWidget {
   const _EvidenceCard({
     required this.item,
+    required this.photoFile,
     required this.strings,
     required this.onDelete,
   });
 
   final EvidenceItemRecord item;
+  final File? photoFile;
   final AppStrings strings;
   final VoidCallback onDelete;
 
@@ -3033,7 +3067,6 @@ class _EvidenceCard extends StatelessWidget {
         : item.severity == EvidenceSeverity.issue
         ? _brass
         : _deepEmerald;
-    final photoFile = item.photoPath == null ? null : File(item.photoPath!);
     final hasPhotoFile = photoFile?.existsSync() ?? false;
     final shortHash = item.photoHash == null || item.photoHash!.isEmpty
         ? strings.hashMissing
@@ -3274,11 +3307,13 @@ class _EvidenceDraft {
 class _PickedEvidencePhoto {
   const _PickedEvidencePhoto({
     required this.photoPath,
+    required this.storedPhotoPath,
     required this.photoHash,
     required this.exifSummary,
   });
 
   final String photoPath;
+  final String storedPhotoPath;
   final String photoHash;
   final String exifSummary;
 }
@@ -3463,7 +3498,7 @@ class _SignatureDialogState extends State<_SignatureDialog> {
     String? signaturePath;
     String? signatureHash;
     if (bytes != null) {
-      final directory = await getApplicationDocumentsDirectory();
+      final directory = await _safeApplicationDocumentsDirectory();
       final signatureDirectory = Directory(
         p.join(directory.path, 'signatures'),
       );
@@ -3573,18 +3608,20 @@ class _SignatureDialogState extends State<_SignatureDialog> {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  Row(
+                  OverflowBar(
+                    spacing: 8,
+                    overflowSpacing: 8,
+                    alignment: MainAxisAlignment.spaceBetween,
+                    overflowAlignment: OverflowBarAlignment.end,
                     children: [
                       TextButton(
                         onPressed: _controller.clear,
                         child: Text(widget.strings.clear),
                       ),
-                      const Spacer(),
                       TextButton(
                         onPressed: () => Navigator.pop(context),
                         child: Text(widget.strings.cancel),
                       ),
-                      const SizedBox(width: 8),
                       FilledButton(
                         style: FilledButton.styleFrom(
                           minimumSize: const Size(0, 48),

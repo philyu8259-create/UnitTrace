@@ -31,6 +31,42 @@ Future<void> tapCreateProperty(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+Future<void> waitForInspectionWorkspace(WidgetTester tester) async {
+  for (var i = 0; i < 20; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+    if (find.byTooltip('Back to Home').evaluate().isNotEmpty &&
+        find.byTooltip('Camera').evaluate().isNotEmpty) {
+      return;
+    }
+  }
+  expect(find.byTooltip('Back to Home'), findsOneWidget);
+  expect(find.byTooltip('Camera'), findsOneWidget);
+}
+
+Finder verticalScrollable() {
+  return find
+      .byWidgetPredicate(
+        (widget) =>
+            widget is Scrollable && widget.axisDirection == AxisDirection.down,
+      )
+      .last;
+}
+
+Future<void> tapInspectionType(WidgetTester tester, String label) async {
+  await tester.scrollUntilVisible(
+    find.text(label).last,
+    180,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tester.drag(find.byType(Scrollable).first, const Offset(0, -160));
+  await tester.pumpAndSettle();
+  final card = find
+      .ancestor(of: find.text(label).last, matching: find.byType(InkWell))
+      .last;
+  await tester.tap(card);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -83,6 +119,11 @@ void main() {
   });
 
   testWidgets('runs inspection note and signature flow', (tester) async {
+    tester.view.physicalSize = const Size(440, 956);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     final store = InMemoryUnitTraceStore();
     await tester.pumpWidget(
       UnitTraceApp(
@@ -105,23 +146,25 @@ void main() {
     await tester.tap(find.text('Save property'));
     await tester.pumpAndSettle();
 
-    final moveIn = find.text('Move-in').first;
-    await tester.ensureVisible(moveIn);
-    await tester.tap(moveIn);
-    await tester.pumpAndSettle();
+    await tapInspectionType(tester, 'Move-in');
     for (var i = 0; i < 10 && (await store.loadInspections()).isEmpty; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
-    expect(find.text('Generate PDF report'), findsOneWidget);
-    expect(find.text('Entry'), findsOneWidget);
+    expect(await store.loadInspections(), isNotEmpty);
+    await waitForInspectionWorkspace(tester);
+    await tester.scrollUntilVisible(
+      find.text('Add note').first,
+      300,
+      scrollable: verticalScrollable(),
+    );
     expect(find.byTooltip('Add note'), findsNothing);
     expect(find.byTooltip('Camera'), findsOneWidget);
     expect(find.byTooltip('Gallery'), findsOneWidget);
-    expect(find.widgetWithText(FilledButton, 'Add note'), findsOneWidget);
+    expect(find.text('Add note'), findsWidgets);
     expect(find.widgetWithText(FilledButton, 'Add evidence'), findsNothing);
     expect(find.widgetWithText(FilledButton, 'Add signature'), findsOneWidget);
 
-    final addEvidence = find.widgetWithText(FilledButton, 'Add note').first;
+    final addEvidence = find.text('Add note').first;
     await tester.ensureVisible(addEvidence);
     await tester.tap(addEvidence);
     await tester.pumpAndSettle();
@@ -142,6 +185,11 @@ void main() {
     final inspections = await store.loadInspections();
     final evidence = await store.loadEvidence(inspections.single.id);
     expect(evidence.single.description, 'Scratch near the entry door');
+    await tester.scrollUntilVisible(
+      find.text('Scratch near the entry door'),
+      220,
+      scrollable: verticalScrollable(),
+    );
     expect(find.text('Scratch near the entry door'), findsOneWidget);
 
     final addSignature = find
@@ -153,12 +201,23 @@ void main() {
     await tester.enterText(find.byType(TextField).last, 'Alex Tenant');
     await tester.tap(find.text('Save signature'));
     await tester.pumpAndSettle();
+    expect(
+      (await store.loadSignatures(
+        inspections.single.id,
+      )).map((signature) => signature.signerName),
+      contains('Alex Tenant'),
+    );
+    await tester.scrollUntilVisible(
+      find.text('Alex Tenant'),
+      220,
+      scrollable: verticalScrollable(),
+    );
     expect(find.text('Alex Tenant'), findsOneWidget);
 
     await tester.scrollUntilVisible(
       find.byTooltip('Add signature'),
       300,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: verticalScrollable(),
     );
     await tester.tap(find.byTooltip('Add signature'));
     await tester.pumpAndSettle();
@@ -166,13 +225,18 @@ void main() {
     await tester.enterText(find.byType(TextField).last, 'Laura Landlord');
     await tester.tap(find.text('Save signature'));
     await tester.pumpAndSettle();
-    expect(find.text('Laura Landlord'), findsOneWidget);
     expect(
       (await store.loadSignatures(
         inspections.single.id,
       )).map((signature) => signature.signerName),
       containsAll(<String>['Alex Tenant', 'Laura Landlord']),
     );
+    await tester.scrollUntilVisible(
+      find.text('Laura Landlord'),
+      220,
+      scrollable: verticalScrollable(),
+    );
+    expect(find.text('Laura Landlord'), findsOneWidget);
   });
 
   testWidgets('deletes inspections and properties with confirmation', (
@@ -274,17 +338,11 @@ void main() {
       expect(find.text('Move-in'), findsOneWidget);
       expect(find.textContaining('Oak Street Apt'), findsWidgets);
 
-      await tester.scrollUntilVisible(
-        find.text('Move-in'),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Move-in'));
-      await tester.pumpAndSettle();
+      await tapInspectionType(tester, 'Move-in');
       for (var i = 0; i < 10 && (await store.loadInspections()).isEmpty; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
+      await waitForInspectionWorkspace(tester);
       expect(await store.loadInspections(), isNotEmpty);
       expect(find.byTooltip('Back to Home'), findsOneWidget);
       expect(find.byType(NavigationBar), findsNothing);
@@ -292,10 +350,10 @@ void main() {
       await tester.scrollUntilVisible(
         find.text('Generate PDF report'),
         500,
-        scrollable: find.byType(Scrollable).last,
+        scrollable: verticalScrollable(),
       );
       expect(find.text('Generate PDF report'), findsOneWidget);
-      expect(find.text('Entry'), findsOneWidget);
+      expect(find.text('Selected room evidence'), findsWidgets);
 
       await tester.tap(find.byTooltip('Back to Home'));
       await tester.pumpAndSettle();
@@ -307,6 +365,11 @@ void main() {
   testWidgets('camera empty result shows a clear capture message', (
     tester,
   ) async {
+    tester.view.physicalSize = const Size(440, 956);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     final store = InMemoryUnitTraceStore();
     await tester.pumpWidget(
       UnitTraceApp(
@@ -330,13 +393,11 @@ void main() {
     await tester.tap(find.text('Save property'));
     await tester.pumpAndSettle();
 
-    final moveIn = find.text('Move-in').first;
-    await tester.ensureVisible(moveIn);
-    await tester.tap(moveIn);
-    await tester.pumpAndSettle();
+    await tapInspectionType(tester, 'Move-in');
     for (var i = 0; i < 10 && (await store.loadInspections()).isEmpty; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
+    await waitForInspectionWorkspace(tester);
 
     final cameraButton = find.byTooltip('Camera').first;
     await tester.ensureVisible(cameraButton);

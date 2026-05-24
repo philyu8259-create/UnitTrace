@@ -105,6 +105,7 @@ class ReportExporter {
         preferJpeg: true,
       ),
     );
+    final documentsDirectory = await _safeApplicationDocumentsDirectory();
     final baseFontData = await rootBundle.load(
       'assets/fonts/NotoSansSC-Regular.ttf',
     );
@@ -194,7 +195,12 @@ class ReportExporter {
                   ),
                   pw.SizedBox(height: 6),
                   ...items.map(
-                    (item) => _evidenceBlock(item, dateFormat, labels),
+                    (item) => _evidenceBlock(
+                      item,
+                      dateFormat,
+                      labels,
+                      documentsDirectory,
+                    ),
                   ),
                   pw.SizedBox(height: 12),
                 ],
@@ -441,13 +447,16 @@ class ReportExporter {
     EvidenceItemRecord item,
     DateFormat dateFormat,
     _ReportPdfLabels labels,
+    Directory documentsDirectory,
   ) {
     pw.Widget? image;
-    final photoMissing =
-        item.photoPath != null && !File(item.photoPath!).existsSync();
-    if (item.photoPath != null && !photoMissing) {
+    final photoFile = _resolveEvidencePhotoFile(
+      item.photoPath,
+      documentsDirectory,
+    );
+    if (photoFile != null) {
       final bytes = _prepareRasterForPdf(
-        File(item.photoPath!).readAsBytesSync(),
+        photoFile.readAsBytesSync(),
         maxDimension: 900,
         preferJpeg: true,
       );
@@ -539,6 +548,26 @@ class ReportExporter {
         ],
       ),
     );
+  }
+
+  Future<Directory> _safeApplicationDocumentsDirectory() async {
+    try {
+      return await getApplicationDocumentsDirectory().timeout(
+        const Duration(milliseconds: 800),
+      );
+    } on Exception {
+      return Directory.systemTemp;
+    }
+  }
+
+  File? _resolveEvidencePhotoFile(String? photoPath, Directory documents) {
+    if (photoPath == null || photoPath.isEmpty) return null;
+    final directFile = File(photoPath);
+    if (directFile.existsSync()) return directFile;
+    final candidate = p.isAbsolute(photoPath)
+        ? File(p.join(documents.path, 'evidence', p.basename(photoPath)))
+        : File(p.join(documents.path, photoPath));
+    return candidate.existsSync() ? candidate : null;
   }
 
   pw.Widget _infoTable(List<List<String>> rows) {

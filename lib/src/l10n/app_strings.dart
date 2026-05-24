@@ -145,6 +145,14 @@ class AppStrings {
   String get hashBadgeLabel => isChinese ? '哈希' : 'HASH';
   String get photo => isChinese ? '照片' : 'Photo';
   String get photos => isChinese ? '照片' : 'Photos';
+  String photoMetric(int count) =>
+      isChinese ? '$count 张' : '$count photo${count == 1 ? '' : 's'}';
+  String photoCountLabel(int count) =>
+      isChinese ? '$count 张照片' : '$count photo${count == 1 ? '' : 's'}';
+  String hashMetric(int count) =>
+      isChinese ? '$count 个' : '$count hash${count == 1 ? '' : 'es'}';
+  String locationMetric(int count) =>
+      isChinese ? '$count 个' : '$count location${count == 1 ? '' : 's'}';
   String get locationStatus => isChinese ? '位置状态' : 'Location status';
   String get timestamp => isChinese ? '时间' : 'Timestamp';
   String get locationCaptured => isChinese ? '已记录位置' : 'Location captured';
