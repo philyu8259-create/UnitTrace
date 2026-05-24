@@ -34,6 +34,8 @@ class AppStrings {
       ? '按房源、检查类型、房间清单完成证据包。'
       : 'Move from property to inspection type, room checklist, signatures, and export.';
   String get activeProperty => isChinese ? '当前房源' : 'Active property';
+  String get home => isChinese ? '首页' : 'Home';
+  String get backToHome => isChinese ? '返回首页' : 'Back to Home';
   String get evidenceDesk => isChinese ? '证据工坊' : 'Evidence Desk';
   String get brandKicker => isChinese ? '房况留证' : 'UNITTRACE';
   String get localEvidenceVault =>
@@ -60,6 +62,11 @@ class AppStrings {
   String noActiveInspectionSubtitle(String propertyName) => isChinese
       ? '为 $propertyName 创建入住、退租或普通检查后，就可以添加照片、备注、位置、签名，并生成 PDF 证据包。'
       : 'Create a move-in, move-out, or general inspection for $propertyName to add photos, notes, location, signatures, and a PDF evidence packet.';
+  String get homeInspectionGuideTitle =>
+      isChinese ? '选择检查进入详情页' : 'Open inspections in a focused page';
+  String homeInspectionGuideSubtitle(String propertyName) => isChinese
+      ? '首页只保留 $propertyName 的房屋、检查类型和最近状态。选择检查后进入独立页面完成房间、证据、签名和报告。'
+      : 'The dashboard keeps $propertyName, inspection types, and recent status only. Open an inspection to finish rooms, evidence, signatures, and reports.';
   String get moveIn => isChinese ? '入住检查' : 'Move-in';
   String get moveOut => isChinese ? '退租检查' : 'Move-out';
   String get generalInspection => isChinese ? '普通检查' : 'General';

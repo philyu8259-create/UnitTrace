@@ -187,19 +187,26 @@ void main() {
       );
       await tester.pumpAndSettle();
       await tester.tap(find.text('Move-in'));
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle();
       for (var i = 0; i < 10 && (await store.loadInspections()).isEmpty; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
       expect(await store.loadInspections(), isNotEmpty);
+      expect(find.byTooltip('Back to Home'), findsOneWidget);
+      expect(find.byType(NavigationBar), findsNothing);
 
       await tester.scrollUntilVisible(
         find.text('Generate PDF report'),
         500,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: find.byType(Scrollable).last,
       );
       expect(find.text('Generate PDF report'), findsOneWidget);
       expect(find.text('Entry'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Back to Home'));
+      await tester.pumpAndSettle();
+      expect(find.text('Evidence Desk'), findsOneWidget);
+      expect(find.byType(NavigationBar), findsOneWidget);
     },
   );
 

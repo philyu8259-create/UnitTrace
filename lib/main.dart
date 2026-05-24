@@ -220,6 +220,32 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
       _mobileTabIndex = 0;
     });
     await _reload();
+    await _openInspectionDetail(property: property, inspection: inspection);
+  }
+
+  Future<void> _openInspectionDetail({
+    required PropertyRecord property,
+    required InspectionRecord inspection,
+  }) async {
+    if (!mounted) return;
+    setState(() {
+      _selectedProperty = property;
+      _selectedInspection = inspection;
+      _mobileTabIndex = 0;
+    });
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (context) => InspectionDetailPage(
+          store: widget.store,
+          property: property,
+          inspection: inspection,
+          captureLocation: widget.captureLocation,
+          imagePicker: widget.imagePicker,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    await _reload();
   }
 
   Future<void> _openReportHistory() async {
@@ -279,15 +305,19 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
               onOpenReportHistory: _openReportHistory,
               onSelectProperty: (property) => setState(() {
                 _selectedProperty = property;
-                _selectedInspection = _inspections
-                    .where((inspection) => inspection.propertyId == property.id)
+                _selectedInspection = _latestInspectionForProperty(property.id);
+                _mobileTabIndex = 0;
+              }),
+              onSelectInspection: (inspection) {
+                final property = _properties
+                    .where((item) => item.id == inspection.propertyId)
                     .firstOrNull;
-                _mobileTabIndex = 0;
-              }),
-              onSelectInspection: (inspection) => setState(() {
-                _selectedInspection = inspection;
-                _mobileTabIndex = 0;
-              }),
+                if (property == null) return;
+                _openInspectionDetail(
+                  property: property,
+                  inspection: inspection,
+                );
+              },
               onStartInspection: _startInspection,
             );
             final content = _selectedProperty == null
@@ -295,19 +325,9 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
                     strings: strings,
                     onCreateProperty: _createProperty,
                   )
-                : _selectedInspection == null
-                ? _NoInspectionPanel(
+                : _NoInspectionPanel(
                     strings: strings,
                     property: _selectedProperty!,
-                  )
-                : InspectionWorkspace(
-                    key: ValueKey(_selectedInspection!.id),
-                    store: widget.store,
-                    property: _selectedProperty!,
-                    inspection: _selectedInspection!,
-                    strings: strings,
-                    captureLocation: widget.captureLocation,
-                    imagePicker: widget.imagePicker,
                   );
             if (!wide) {
               final tabBody = switch (_mobileTabIndex) {
@@ -315,7 +335,7 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 104),
                   children: [
                     sidebar,
-                    if (_selectedInspection != null) ...[
+                    if (_selectedProperty == null) ...[
                       const SizedBox(height: 16),
                       content,
                     ],
@@ -377,6 +397,15 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
               onChanged: (index) => setState(() => _mobileTabIndex = index),
             ),
     );
+  }
+
+  InspectionRecord? _latestInspectionForProperty(String propertyId) {
+    final sorted =
+        _inspections
+            .where((inspection) => inspection.propertyId == propertyId)
+            .toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return sorted.firstOrNull;
   }
 }
 
@@ -1421,12 +1450,12 @@ class _NoInspectionPanel extends StatelessWidget {
               ),
               const SizedBox(height: 18),
               Text(
-                strings.noActiveInspectionTitle,
+                strings.homeInspectionGuideTitle,
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 8),
               Text(
-                strings.noActiveInspectionSubtitle(property.name),
+                strings.homeInspectionGuideSubtitle(property.name),
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: 14),
@@ -1449,6 +1478,56 @@ class _NoInspectionPanel extends StatelessWidget {
                 ],
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class InspectionDetailPage extends StatelessWidget {
+  const InspectionDetailPage({
+    super.key,
+    required this.store,
+    required this.property,
+    required this.inspection,
+    required this.captureLocation,
+    required this.imagePicker,
+  });
+
+  final UnitTraceStore store;
+  final PropertyRecord property;
+  final InspectionRecord inspection;
+  final bool captureLocation;
+  final UnitTraceImagePicker imagePicker;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          tooltip: strings.backToHome,
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.home_outlined),
+        ),
+        title: Text(
+          '${_typeLabel(strings, inspection.type)} · ${property.name}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          child: InspectionWorkspace(
+            key: ValueKey(inspection.id),
+            store: store,
+            property: property,
+            inspection: inspection,
+            strings: strings,
+            captureLocation: captureLocation,
+            imagePicker: imagePicker,
           ),
         ),
       ),

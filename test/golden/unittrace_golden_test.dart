@@ -59,10 +59,12 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Continue inspection'));
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.text('Room checklist'),
       500,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: find.byType(Scrollable).last,
     );
     await tester.pumpAndSettle();
 
