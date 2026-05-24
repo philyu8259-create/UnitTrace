@@ -2166,22 +2166,10 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
         ),
         const SizedBox(height: 18),
         _SectionHeader(
-          title: widget.strings.roomChecklist,
-          subtitle: widget.strings.roomChecklistSubtitle,
-        ),
-        const SizedBox(height: 8),
-        ...roomStatuses.map(
-          (status) => _RoomChecklistCard(
-            strings: widget.strings,
-            status: status,
-            selected: status.room.id == _selectedRoom?.id,
-            onTap: () => setState(() => _selectedRoom = status.room),
-          ),
-        ),
-        const SizedBox(height: 18),
-        _SectionHeader(
           title: widget.strings.selectedRoomEvidence,
-          subtitle: widget.strings.hashReady,
+          subtitle: _selectedRoom == null
+              ? widget.strings.hashReady
+              : '${widget.strings.roomDetail}: ${_selectedRoom!.name}',
           trailing: Wrap(
             spacing: 8,
             children: [
@@ -2196,6 +2184,27 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
                 icon: const Icon(Icons.photo_library_outlined),
               ),
             ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: roomStatuses
+                .map(
+                  (status) => Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(
+                        '${status.room.name} · ${status.evidenceCount}',
+                      ),
+                      selected: status.room.id == _selectedRoom?.id,
+                      onSelected: (_) =>
+                          setState(() => _selectedRoom = status.room),
+                    ),
+                  ),
+                )
+                .toList(),
           ),
         ),
         const SizedBox(height: 10),
@@ -2354,6 +2363,20 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
               ),
             ),
           ),
+        const SizedBox(height: 18),
+        _SectionHeader(
+          title: widget.strings.roomChecklist,
+          subtitle: widget.strings.roomChecklistSubtitle,
+        ),
+        const SizedBox(height: 8),
+        ...roomStatuses.map(
+          (status) => _RoomChecklistCard(
+            strings: widget.strings,
+            status: status,
+            selected: status.room.id == _selectedRoom?.id,
+            onTap: () => setState(() => _selectedRoom = status.room),
+          ),
+        ),
       ],
     );
   }
