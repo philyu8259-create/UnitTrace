@@ -56,6 +56,7 @@ void main() {
     expect(manifest.evidenceCount, 1);
     expect(manifest.photoCount, 1);
     expect(manifest.evidenceHashes, [photoHash]);
+    expect(manifest.toJson()['inspectionType'], 'move_in');
     final propertyJson = manifest.toJson()['property']! as Map<String, Object?>;
     expect(propertyJson['address'], contains('Los Angeles'));
     expect(manifest.manifestHash.length, 64);

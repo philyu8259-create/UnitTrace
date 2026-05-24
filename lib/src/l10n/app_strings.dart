@@ -77,6 +77,16 @@ class AppStrings {
   String get inspectionGuideSubtitle => isChinese
       ? '选择房间，拍照或写备注，签名后导出报告。'
       : 'Choose a room, add photos or notes, sign, then export the report.';
+  String get nextStep => isChinese ? '下一步' : 'Next step';
+  String get nextStepEvidence => isChinese
+      ? '先在下方选择房间，再拍照、相册多选或添加文字备注。'
+      : 'Choose a room below, then take photos, pick gallery photos, or add notes.';
+  String get nextStepSignature => isChinese
+      ? '证据已开始采集，下一步添加租客或房东签名。'
+      : 'Evidence capture has started. Next, add tenant or landlord signatures.';
+  String get nextStepReport => isChinese
+      ? '证据和签名已就绪，最后生成 PDF 证据包。'
+      : 'Evidence and signatures are ready. Generate the PDF packet as the final step.';
   String get emptyEvidenceTitle =>
       isChinese ? '这个房间还没有证据' : 'No evidence in this room yet';
   String get emptyEvidenceSubtitle => isChinese
@@ -123,6 +133,13 @@ class AppStrings {
       ? '本报告用于整理房况记录，不构成法律建议。请根据所在地法规和正式租赁文件核验。'
       : 'This report organizes property-condition records and is not legal advice. Verify requirements with local law and lease documents.';
   String get reportReady => isChinese ? '报告已生成' : 'Report ready';
+  String get finalReportTitle => isChinese ? '最终报告' : 'Final report';
+  String get finalReportSubtitle => isChinese
+      ? '检查证据和签名后，生成带检查类型、时间、哈希和免责声明的 PDF 证据包。'
+      : 'After reviewing evidence and signatures, generate a PDF packet with type, time, hashes, and disclaimer.';
+  String get finalReportNeedsEvidence => isChinese
+      ? '建议至少添加一条证据后再生成 PDF，避免报告内容过空。'
+      : 'Add at least one evidence item before generating a PDF so the report is useful.';
   String get reports => isChinese ? '报告' : 'Reports';
   String get propertiesTab => isChinese ? '房屋' : 'Homes';
   String get inspectionTab => isChinese ? '检查' : 'Inspect';

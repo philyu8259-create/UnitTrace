@@ -15,6 +15,7 @@ void main() {
       baseName: 'older',
       reportId: 'UT-older',
       propertyName: 'Older Apt',
+      inspectionTypeKey: 'move_in',
       generatedAt: DateTime.utc(2026, 5, 1),
       manifestHash: 'a' * 64,
     );
@@ -23,6 +24,7 @@ void main() {
       baseName: 'newer',
       reportId: 'UT-newer',
       propertyName: 'Newer Apt',
+      inspectionTypeKey: 'move_out',
       generatedAt: DateTime.utc(2026, 5, 2),
       manifestHash: 'b' * 64,
     );
@@ -33,6 +35,7 @@ void main() {
     expect(reports.map((report) => report.reportId), ['UT-newer', 'UT-older']);
     expect(reports.first.propertyName, 'Newer Apt');
     expect(reports.first.pdfFile.path, endsWith('newer.pdf'));
+    expect(reports.first.inspectionTypeKey, 'move_out');
     expect(reports.first.manifestHash, 'b' * 64);
     expect(reports.first.evidenceCount, 3);
     expect(reports.first.photoCount, 2);
@@ -44,6 +47,7 @@ Future<void> _writeReportPair(
   required String baseName,
   required String reportId,
   required String propertyName,
+  required String inspectionTypeKey,
   required DateTime generatedAt,
   required String manifestHash,
 }) async {
@@ -53,7 +57,9 @@ Future<void> _writeReportPair(
   await File(p.join(directory.path, '$baseName.json')).writeAsString(
     jsonEncode({
       'reportId': reportId,
+      'inspectionType': inspectionTypeKey,
       'property': {'name': propertyName},
+      'inspection': {'type': inspectionTypeKey},
       'generatedAt': generatedAt.toIso8601String(),
       'manifestHash': manifestHash,
       'evidenceCount': 3,

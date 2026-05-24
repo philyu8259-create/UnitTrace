@@ -52,8 +52,9 @@ class ReportExporter {
     );
     final reportDirectory = await reportsDirectory();
     await reportDirectory.create(recursive: true);
+    final timestamp = DateFormat('yyyyMMdd-HHmmss').format(DateTime.now());
     final baseName =
-        '${manifest.reportId}-${DateFormat('yyyyMMdd-HHmmss').format(DateTime.now())}';
+        '${_inspectionTypeSlug(inspection.type)}-${_safeFilePart(property.name)}-${manifest.reportId}-$timestamp';
     final pdfFile = File(p.join(reportDirectory.path, '$baseName.pdf'));
     final manifestFile = File(p.join(reportDirectory.path, '$baseName.json'));
     await pdfFile.writeAsBytes(bytes, flush: true);
@@ -66,6 +67,21 @@ class ReportExporter {
       manifestFile: manifestFile,
       manifest: manifest,
     );
+  }
+
+  String _inspectionTypeSlug(InspectionType type) {
+    return switch (type) {
+      InspectionType.moveIn => 'move-in',
+      InspectionType.moveOut => 'move-out',
+      InspectionType.general => 'general',
+    };
+  }
+
+  String _safeFilePart(String value) {
+    final normalized = value.trim().replaceAll(RegExp(r'[\\/:*?"<>|\s]+'), '-');
+    final trimmed = normalized.replaceAll(RegExp(r'^-+|-+$'), '');
+    if (trimmed.isEmpty) return 'property';
+    return trimmed.length <= 48 ? trimmed : trimmed.substring(0, 48);
   }
 
   static Future<Directory> reportsDirectory() async {

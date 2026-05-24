@@ -41,6 +41,8 @@ class ReportManifest {
   Map<String, Object?> toJson({bool includeHash = true}) {
     final json = <String, Object?>{
       'reportId': reportId,
+      'inspectionType': inspection.type.storageKey,
+      'reportTitle': '${property.name} ${inspection.type.storageKey}',
       'property': property.toJson(),
       'inspection': inspection.toJson(),
       'rooms': rooms.map((room) => room.toJson()).toList(),

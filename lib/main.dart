@@ -1369,6 +1369,11 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
     final issueCount = _evidence
         .where((item) => item.severity != EvidenceSeverity.good)
         .length;
+    final nextStepMessage = _evidence.isEmpty
+        ? widget.strings.nextStepEvidence
+        : _signatures.isEmpty
+        ? widget.strings.nextStepSignature
+        : widget.strings.nextStepReport;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1417,26 +1422,44 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
                 ],
               ),
               const SizedBox(height: 14),
-              Wrap(
-                spacing: 10,
-                runSpacing: 8,
-                children: [
-                  FilledButton.icon(
-                    onPressed: () => _addEvidence(source: null),
-                    icon: const Icon(Icons.note_add_outlined),
-                    label: Text(widget.strings.addEvidence),
-                  ),
-                  FilledButton.tonalIcon(
-                    onPressed: _addSignature,
-                    icon: const Icon(Icons.draw_outlined),
-                    label: Text(widget.strings.addSignature),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: _exportReport,
-                    icon: const Icon(Icons.picture_as_pdf_outlined),
-                    label: Text(widget.strings.generateReport),
-                  ),
-                ],
+              _PremiumSurface(
+                padding: const EdgeInsets.all(12),
+                backgroundColor: _warmSurface,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: _mist,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.route_outlined,
+                        color: _deepEmerald,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.strings.nextStep,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            nextStepMessage,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -1562,6 +1585,57 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
               subtitle: Text(signature.signerRole),
             ),
           ),
+        const SizedBox(height: 18),
+        _SectionHeader(
+          title: widget.strings.finalReportTitle,
+          subtitle: _evidence.isEmpty
+              ? widget.strings.finalReportNeedsEvidence
+              : widget.strings.finalReportSubtitle,
+        ),
+        const SizedBox(height: 10),
+        _PremiumSurface(
+          backgroundColor: _evidence.isEmpty ? _warmSurface : _mist,
+          borderColor: _evidence.isEmpty ? _line : const Color(0xFFC9DCD5),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.picture_as_pdf_outlined,
+                      color: _deepEmerald,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      '${_typeLabel(widget.strings, widget.inspection.type)} · ${widget.property.name}',
+                      style: Theme.of(context).textTheme.titleMedium,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: _evidence.isEmpty ? null : _exportReport,
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  label: Text(widget.strings.generateReport),
+                ),
+              ),
+            ],
+          ),
+        ),
         if (_lastReport != null)
           _PremiumSurface(
             backgroundColor: _mist,
@@ -1768,51 +1842,62 @@ class _ReportHistoryPanelState extends State<_ReportHistoryPanel> {
               ...reports.map(
                 (report) => Padding(
                   padding: const EdgeInsets.only(bottom: 10),
-                  child: _PremiumSurface(
-                    padding: EdgeInsets.zero,
-                    child: ListTile(
-                      leading: Container(
-                        width: 42,
-                        height: 42,
-                        decoration: BoxDecoration(
-                          color: _mist,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.picture_as_pdf_outlined,
-                          color: _deepEmerald,
-                        ),
-                      ),
-                      title: Text(
-                        report.propertyName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      subtitle: Text(
-                        '${report.reportId} | ${report.evidenceCount} ${widget.strings.evidence.toLowerCase()} | ${_shortHash(report.manifestHash)}',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      trailing: Wrap(
-                        spacing: 2,
-                        children: [
-                          IconButton(
-                            tooltip: widget.strings.viewReport,
-                            onPressed: () => _openPdfPreview(
-                              context,
-                              widget.strings,
-                              report.pdfFile,
+                  child: Builder(
+                    builder: (context) {
+                      final inspectionType = InspectionType.fromStorageKey(
+                        report.inspectionTypeKey,
+                      );
+                      final inspectionLabel = _typeLabel(
+                        widget.strings,
+                        inspectionType,
+                      );
+                      return _PremiumSurface(
+                        padding: EdgeInsets.zero,
+                        child: ListTile(
+                          leading: Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: _mist,
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            icon: const Icon(Icons.visibility_outlined),
+                            child: const Icon(
+                              Icons.picture_as_pdf_outlined,
+                              color: _deepEmerald,
+                            ),
                           ),
-                          IconButton(
-                            tooltip: widget.strings.shareReportAction,
-                            onPressed: () => _sharePdf(report.pdfFile),
-                            icon: const Icon(Icons.ios_share_outlined),
+                          title: Text(
+                            '${report.propertyName} · $inspectionLabel',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ],
-                      ),
-                    ),
+                          subtitle: Text(
+                            '${report.reportId} | ${report.evidenceCount} ${widget.strings.evidence.toLowerCase()} | ${_shortHash(report.manifestHash)}',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          trailing: Wrap(
+                            spacing: 2,
+                            children: [
+                              IconButton(
+                                tooltip: widget.strings.viewReport,
+                                onPressed: () => _openPdfPreview(
+                                  context,
+                                  widget.strings,
+                                  report.pdfFile,
+                                ),
+                                icon: const Icon(Icons.visibility_outlined),
+                              ),
+                              IconButton(
+                                tooltip: widget.strings.shareReportAction,
+                                onPressed: () => _sharePdf(report.pdfFile),
+                                icon: const Icon(Icons.ios_share_outlined),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),

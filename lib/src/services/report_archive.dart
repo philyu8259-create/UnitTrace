@@ -7,6 +7,7 @@ class ReportArchiveEntry {
   const ReportArchiveEntry({
     required this.reportId,
     required this.propertyName,
+    required this.inspectionTypeKey,
     required this.generatedAt,
     required this.manifestHash,
     required this.evidenceCount,
@@ -17,6 +18,7 @@ class ReportArchiveEntry {
 
   final String reportId;
   final String propertyName;
+  final String inspectionTypeKey;
   final DateTime generatedAt;
   final String manifestHash;
   final int evidenceCount;
@@ -52,11 +54,17 @@ class ReportArchive {
                 as Map<String, Object?>;
         final propertyJson =
             json['property'] as Map<String, Object?>? ?? const {};
+        final inspectionJson =
+            json['inspection'] as Map<String, Object?>? ?? const {};
         entries.add(
           ReportArchiveEntry(
             reportId: json['reportId'] as String? ?? baseName,
             propertyName:
                 propertyJson['name'] as String? ?? 'Untitled property',
+            inspectionTypeKey:
+                json['inspectionType'] as String? ??
+                inspectionJson['type'] as String? ??
+                'general',
             generatedAt:
                 DateTime.tryParse(json['generatedAt'] as String? ?? '') ??
                 await manifestFile.lastModified(),

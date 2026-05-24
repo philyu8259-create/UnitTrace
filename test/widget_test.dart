@@ -87,8 +87,12 @@ void main() {
     }
     expect(find.text('Generate PDF report'), findsOneWidget);
     expect(find.text('Entry'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Add evidence'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Add signature'), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Add evidence').first);
+    final addEvidence = find.widgetWithText(FilledButton, 'Add evidence').first;
+    await tester.ensureVisible(addEvidence);
+    await tester.tap(addEvidence);
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const Key('evidence-description-field')),
