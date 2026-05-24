@@ -388,7 +388,7 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
     await tester.pumpAndSettle();
     expect(await store.loadInspections(), isEmpty);
-    expect(find.text('Evidence Desk'), findsOneWidget);
+    expect(find.text('Local Evidence Vault'), findsOneWidget);
 
     await tester.scrollUntilVisible(
       find.byTooltip('Delete property'),
@@ -463,7 +463,7 @@ void main() {
 
       await tester.tap(find.byTooltip('Back to Home'));
       await tester.pumpAndSettle();
-      expect(find.text('Evidence Desk'), findsOneWidget);
+      expect(find.text('Local Evidence Vault'), findsOneWidget);
       expect(find.byType(NavigationBar), findsOneWidget);
     },
   );

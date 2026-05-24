@@ -44,7 +44,7 @@ class AppStrings {
       isChinese ? '时间戳 · 哈希 · 签名' : 'Timestamp · Hash · Signature';
   String get evidenceDeskTraits => isChinese
       ? '资产级封存 • 时间戳 • 位置与签名闭环'
-      : 'Evidence vault feel · timestamp chain · signed integrity loop';
+      : 'Private vault · timestamp chain · signed integrity loop';
   String get recentInspection => isChinese ? '最近检查' : 'Recent inspection';
   String get noRecentInspection => isChinese ? '暂无检查' : 'No inspections yet';
   String get inspectionProgress => isChinese ? '检查进度' : 'Inspection progress';

@@ -21,7 +21,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Evidence Desk'), findsOneWidget);
+      expect(find.text('Local Evidence Vault'), findsOneWidget);
       expect(find.text('Oak Street Apt'), findsAtLeastNWidgets(1));
       expect(tester.takeException(), isNull);
     });

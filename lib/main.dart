@@ -1039,16 +1039,12 @@ class _DashboardSidebar extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
-              Text(
-                strings.evidenceDesk,
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
+              const SizedBox(height: 12),
               Text(
                 strings.localEvidenceVault,
-                style: Theme.of(context).textTheme.titleLarge,
+                style: Theme.of(context).textTheme.headlineSmall,
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
               Text(
                 strings.evidenceDeskTagline,
                 style: Theme.of(context).textTheme.bodySmall,
