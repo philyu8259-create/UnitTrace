@@ -175,12 +175,18 @@ void main() {
       await tester.tap(find.text('Save property'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Start first inspection'), findsOneWidget);
+      expect(find.text('Start first inspection'), findsNothing);
+      expect(find.text('No inspection workspace yet'), findsNothing);
+      expect(find.text('Move-in'), findsOneWidget);
       expect(find.textContaining('Oak Street Apt'), findsWidgets);
 
-      await tester.tap(
-        find.widgetWithText(FilledButton, 'Start first inspection'),
+      await tester.scrollUntilVisible(
+        find.text('Move-in'),
+        200,
+        scrollable: find.byType(Scrollable).first,
       );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Move-in'));
       await tester.pump(const Duration(milliseconds: 500));
       for (var i = 0; i < 10 && (await store.loadInspections()).isEmpty; i++) {
         await tester.pump(const Duration(milliseconds: 100));

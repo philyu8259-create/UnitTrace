@@ -299,7 +299,6 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
                 ? _NoInspectionPanel(
                     strings: strings,
                     property: _selectedProperty!,
-                    onStartInspection: _startInspection,
                   )
                 : InspectionWorkspace(
                     key: ValueKey(_selectedInspection!.id),
@@ -316,7 +315,7 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 104),
                   children: [
                     sidebar,
-                    if (_selectedProperty != null) ...[
+                    if (_selectedInspection != null) ...[
                       const SizedBox(height: 16),
                       content,
                     ],
@@ -871,18 +870,14 @@ class _DashboardSidebar extends StatelessWidget {
         .length;
     final deskReady = selectedSummary?.canExport ?? false;
     final deskBadge = deskReady ? strings.verified : strings.localOnly;
-    final primaryAction = selectedInspection == null
-        ? FilledButton.icon(
-            onPressed: selectedProperty == null
-                ? onCreateProperty
-                : () => onStartInspection(InspectionType.moveIn),
-            icon: const Icon(Icons.playlist_add_check_outlined),
-            label: Text(
-              selectedProperty == null
-                  ? strings.createProperty
-                  : strings.startFirstInspection,
-            ),
-          )
+    final Widget? primaryAction = selectedInspection == null
+        ? selectedProperty == null
+              ? FilledButton.icon(
+                  onPressed: onCreateProperty,
+                  icon: const Icon(Icons.add_home_work_outlined),
+                  label: Text(strings.createProperty),
+                )
+              : null
         : FilledButton.icon(
             onPressed: () => onSelectInspection(selectedInspection!),
             icon: const Icon(Icons.play_arrow_outlined),
@@ -967,8 +962,10 @@ class _DashboardSidebar extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
-              SizedBox(width: double.infinity, child: primaryAction),
+              if (primaryAction != null) ...[
+                const SizedBox(height: 14),
+                SizedBox(width: double.infinity, child: primaryAction),
+              ],
             ],
           ),
         ),
@@ -1402,15 +1399,10 @@ class _EmptyDashboard extends StatelessWidget {
 }
 
 class _NoInspectionPanel extends StatelessWidget {
-  const _NoInspectionPanel({
-    required this.strings,
-    required this.property,
-    required this.onStartInspection,
-  });
+  const _NoInspectionPanel({required this.strings, required this.property});
 
   final AppStrings strings;
   final PropertyRecord property;
-  final ValueChanged<InspectionType> onStartInspection;
 
   @override
   Widget build(BuildContext context) {
@@ -1453,28 +1445,6 @@ class _NoInspectionPanel extends StatelessWidget {
                   _TrustPill(
                     icon: Icons.picture_as_pdf_outlined,
                     label: strings.pdfEvidence,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  FilledButton.icon(
-                    onPressed: () => onStartInspection(InspectionType.moveIn),
-                    icon: const Icon(Icons.login),
-                    label: Text(strings.moveIn),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: () => onStartInspection(InspectionType.moveOut),
-                    icon: const Icon(Icons.logout),
-                    label: Text(strings.moveOut),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: () => onStartInspection(InspectionType.general),
-                    icon: const Icon(Icons.fact_check_outlined),
-                    label: Text(strings.generalInspection),
                   ),
                 ],
               ),
