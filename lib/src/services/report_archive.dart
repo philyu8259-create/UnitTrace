@@ -12,6 +12,7 @@ class ReportArchiveEntry {
     required this.manifestHash,
     required this.evidenceCount,
     required this.photoCount,
+    required this.inspectionId,
     required this.pdfFile,
     required this.manifestFile,
   });
@@ -23,6 +24,7 @@ class ReportArchiveEntry {
   final String manifestHash;
   final int evidenceCount;
   final int photoCount;
+  final String inspectionId;
   final File pdfFile;
   final File manifestFile;
 }
@@ -70,6 +72,11 @@ class ReportArchive {
                 json['inspectionType'] as String? ??
                 inspectionJson['type'] as String? ??
                 'general',
+            inspectionId:
+                inspectionJson['id'] as String? ??
+                _inspectionIdFromReportId(
+                  json['reportId'] as String? ?? baseName,
+                ),
             generatedAt:
                 DateTime.tryParse(json['generatedAt'] as String? ?? '') ??
                 await manifestFile.lastModified(),
@@ -90,5 +97,9 @@ class ReportArchive {
     }
     entries.sort((a, b) => b.generatedAt.compareTo(a.generatedAt));
     return entries;
+  }
+
+  String _inspectionIdFromReportId(String reportId) {
+    return reportId.startsWith('UT-') ? reportId.substring(3) : '';
   }
 }

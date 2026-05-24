@@ -100,8 +100,7 @@ void main() {
 }
 
 Future<void> _pumpUntilReportHistoryReady(WidgetTester tester) async {
-  final end = DateTime.now().add(const Duration(seconds: 5));
-  while (DateTime.now().isBefore(end)) {
+  for (var i = 0; i < 50; i++) {
     await tester.pump(const Duration(milliseconds: 100));
     final hasStableHistoryContent =
         find.text('Where reports come from').evaluate().isNotEmpty ||

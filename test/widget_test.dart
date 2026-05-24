@@ -32,6 +32,8 @@ Future<void> tapCreateProperty(WidgetTester tester) async {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   testWidgets('creates a property from the empty dashboard', (tester) async {
     await tester.pumpWidget(
       UnitTraceApp(

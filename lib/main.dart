@@ -116,6 +116,7 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
   Map<String, List<RoomRecord>> _roomsByInspection = {};
   Map<String, List<EvidenceItemRecord>> _evidenceByInspection = {};
   Map<String, List<SignatureRecord>> _signaturesByInspection = {};
+  Set<String> _exportedInspectionIds = {};
   PropertyRecord? _selectedProperty;
   InspectionRecord? _selectedInspection;
   int _mobileTabIndex = 0;
@@ -168,6 +169,23 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
       }
       _loading = false;
     });
+    _refreshExportedInspectionIds();
+  }
+
+  Future<void> _refreshExportedInspectionIds() async {
+    try {
+      final directory = await ReportExporter.reportsDirectory();
+      final reports = await ReportArchive().scanDirectory(directory);
+      final exportedInspectionIds = reports
+          .map((report) => report.inspectionId)
+          .where((id) => id.isNotEmpty)
+          .toSet();
+      if (!mounted) return;
+      setState(() => _exportedInspectionIds = exportedInspectionIds);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _exportedInspectionIds = <String>{});
+    }
   }
 
   Future<void> _createProperty() async {
@@ -355,6 +373,7 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
               roomsByInspection: _roomsByInspection,
               evidenceByInspection: _evidenceByInspection,
               signaturesByInspection: _signaturesByInspection,
+              exportedInspectionIds: _exportedInspectionIds,
               onCreateProperty: _createProperty,
               onOpenReportHistory: _openReportHistory,
               onSelectProperty: (property) => setState(() {
@@ -912,6 +931,7 @@ class _DashboardSidebar extends StatelessWidget {
     required this.roomsByInspection,
     required this.evidenceByInspection,
     required this.signaturesByInspection,
+    required this.exportedInspectionIds,
     required this.onCreateProperty,
     required this.onSelectProperty,
     required this.onSelectInspection,
@@ -929,6 +949,7 @@ class _DashboardSidebar extends StatelessWidget {
   final Map<String, List<RoomRecord>> roomsByInspection;
   final Map<String, List<EvidenceItemRecord>> evidenceByInspection;
   final Map<String, List<SignatureRecord>> signaturesByInspection;
+  final Set<String> exportedInspectionIds;
   final VoidCallback onCreateProperty;
   final ValueChanged<PropertyRecord> onSelectProperty;
   final ValueChanged<InspectionRecord> onSelectInspection;
@@ -956,12 +977,14 @@ class _DashboardSidebar extends StatelessWidget {
           );
     final readyInspectionCount = inspections
         .where(
-          (inspection) => InspectionProgressSummary.build(
-            inspection: inspection,
-            rooms: roomsByInspection[inspection.id] ?? const [],
-            evidenceItems: evidenceByInspection[inspection.id] ?? const [],
-            signatures: signaturesByInspection[inspection.id] ?? const [],
-          ).canExport,
+          (inspection) =>
+              InspectionProgressSummary.build(
+                inspection: inspection,
+                rooms: roomsByInspection[inspection.id] ?? const [],
+                evidenceItems: evidenceByInspection[inspection.id] ?? const [],
+                signatures: signaturesByInspection[inspection.id] ?? const [],
+              ).canExport &&
+              !exportedInspectionIds.contains(inspection.id),
         )
         .length;
     final deskReady = selectedSummary?.canExport ?? false;
@@ -1085,6 +1108,9 @@ class _DashboardSidebar extends StatelessWidget {
               selected: property.id == selectedProperty?.id,
               latestInspection: _latestInspectionForProperty(property.id),
               latestSummary: _latestSummaryForProperty(property.id),
+              reportGenerated: exportedInspectionIds.contains(
+                _latestInspectionForProperty(property.id)?.id,
+              ),
               onTap: () => onSelectProperty(property),
               onDelete: () => onDeleteProperty(property),
             ),
@@ -1142,6 +1168,7 @@ class _DashboardSidebar extends StatelessWidget {
                       evidenceByInspection[inspection.id] ?? const [],
                   signatures: signaturesByInspection[inspection.id] ?? const [],
                 ),
+                reportGenerated: exportedInspectionIds.contains(inspection.id),
                 onTap: () => onSelectInspection(inspection),
                 onDelete: () => onDeleteInspection(inspection),
               ),
@@ -1180,6 +1207,7 @@ class _PropertyDashboardCard extends StatelessWidget {
     required this.selected,
     required this.latestInspection,
     required this.latestSummary,
+    required this.reportGenerated,
     required this.onTap,
     required this.onDelete,
   });
@@ -1189,6 +1217,7 @@ class _PropertyDashboardCard extends StatelessWidget {
   final bool selected;
   final InspectionRecord? latestInspection;
   final InspectionProgressSummary? latestSummary;
+  final bool reportGenerated;
   final VoidCallback onTap;
   final VoidCallback onDelete;
 
@@ -1200,7 +1229,11 @@ class _PropertyDashboardCard extends StatelessWidget {
         : _typeLabel(strings, latestInspection!.type);
     final evidenceCount = latestSummary?.evidenceCount ?? 0;
     final signatureCount = latestSummary?.signatureCount ?? 0;
-    final exportStatus = exportReady ? strings.ready : strings.needsSignature;
+    final exportStatus = reportGenerated
+        ? strings.reportReady
+        : exportReady
+        ? strings.readyToExport
+        : strings.needsSignature;
     final signatureStatus = signatureCount > 0
         ? strings.signatures
         : strings.needSignatureLabel;
@@ -1275,7 +1308,7 @@ class _PropertyDashboardCard extends StatelessWidget {
                           ),
                           _StatusPill(
                             label: exportStatus,
-                            emphasized: exportReady,
+                            emphasized: exportReady || reportGenerated,
                           ),
                         ],
                       ),
@@ -1397,6 +1430,7 @@ class _InspectionDashboardTile extends StatelessWidget {
     required this.strings,
     required this.inspection,
     required this.summary,
+    required this.reportGenerated,
     required this.selected,
     required this.onTap,
     required this.onDelete,
@@ -1405,6 +1439,7 @@ class _InspectionDashboardTile extends StatelessWidget {
   final AppStrings strings;
   final InspectionRecord inspection;
   final InspectionProgressSummary summary;
+  final bool reportGenerated;
   final bool selected;
   final VoidCallback onTap;
   final VoidCallback onDelete;
@@ -1431,10 +1466,12 @@ class _InspectionDashboardTile extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               _StatusPill(
-                label: summary.canExport
+                label: reportGenerated
+                    ? strings.reportReady
+                    : summary.canExport
                     ? strings.readyToExport
                     : strings.inProgress,
-                emphasized: summary.canExport,
+                emphasized: summary.canExport || reportGenerated,
               ),
               IconButton(
                 tooltip: strings.deleteInspection,
@@ -2817,33 +2854,40 @@ class _ReportHistoryPanelState extends State<_ReportHistoryPanel> {
                               ],
                             ),
                             const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Text(
-                                  '${widget.strings.reportIdLabel}: ${report.reportId}',
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                                const Spacer(),
-                                IconButton(
-                                  tooltip: widget.strings.viewReport,
-                                  onPressed: () => _openPdfPreview(
-                                    context,
-                                    widget.strings,
-                                    report.pdfFile,
+                            Text(
+                              '${widget.strings.reportIdLabel}: ${report.reportId}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            const SizedBox(height: 4),
+                            Align(
+                              alignment: AlignmentDirectional.centerEnd,
+                              child: Wrap(
+                                spacing: 2,
+                                runSpacing: 2,
+                                children: [
+                                  IconButton(
+                                    tooltip: widget.strings.viewReport,
+                                    onPressed: () => _openPdfPreview(
+                                      context,
+                                      widget.strings,
+                                      report.pdfFile,
+                                    ),
+                                    icon: const Icon(Icons.visibility_outlined),
                                   ),
-                                  icon: const Icon(Icons.visibility_outlined),
-                                ),
-                                IconButton(
-                                  tooltip: widget.strings.shareReportAction,
-                                  onPressed: () => _sharePdf(report.pdfFile),
-                                  icon: const Icon(Icons.ios_share_outlined),
-                                ),
-                                IconButton(
-                                  tooltip: widget.strings.deleteReport,
-                                  onPressed: () => _deleteReport(report),
-                                  icon: const Icon(Icons.delete_outline),
-                                ),
-                              ],
+                                  IconButton(
+                                    tooltip: widget.strings.shareReportAction,
+                                    onPressed: () => _sharePdf(report.pdfFile),
+                                    icon: const Icon(Icons.ios_share_outlined),
+                                  ),
+                                  IconButton(
+                                    tooltip: widget.strings.deleteReport,
+                                    onPressed: () => _deleteReport(report),
+                                    icon: const Icon(Icons.delete_outline),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),

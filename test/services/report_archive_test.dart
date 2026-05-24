@@ -27,6 +27,7 @@ void main() {
       inspectionTypeKey: 'move_out',
       generatedAt: DateTime.utc(2026, 5, 2),
       manifestHash: 'b' * 64,
+      inspectionId: 'inspection-newer',
     );
     await File(p.join(temp.path, 'orphan.pdf')).writeAsBytes([37, 80, 68, 70]);
 
@@ -36,6 +37,7 @@ void main() {
     expect(reports.first.propertyName, 'Newer Apt');
     expect(reports.first.pdfFile.path, endsWith('newer.pdf'));
     expect(reports.first.inspectionTypeKey, 'move_out');
+    expect(reports.first.inspectionId, 'inspection-newer');
     expect(reports.first.manifestHash, 'b' * 64);
     expect(reports.first.evidenceCount, 3);
     expect(reports.first.photoCount, 2);
@@ -50,6 +52,7 @@ Future<void> _writeReportPair(
   required String inspectionTypeKey,
   required DateTime generatedAt,
   required String manifestHash,
+  String inspectionId = 'inspection-older',
 }) async {
   await File(
     p.join(directory.path, '$baseName.pdf'),
@@ -59,7 +62,7 @@ Future<void> _writeReportPair(
       'reportId': reportId,
       'inspectionType': inspectionTypeKey,
       'property': {'name': propertyName},
-      'inspection': {'type': inspectionTypeKey},
+      'inspection': {'id': inspectionId, 'type': inspectionTypeKey},
       'generatedAt': generatedAt.toIso8601String(),
       'manifestHash': manifestHash,
       'evidenceCount': 3,
