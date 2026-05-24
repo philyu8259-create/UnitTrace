@@ -114,13 +114,22 @@ void main() {
     }
     expect(find.text('Generate PDF report'), findsOneWidget);
     expect(find.text('Entry'), findsOneWidget);
-    expect(find.widgetWithText(FilledButton, 'Add evidence'), findsOneWidget);
+    expect(find.byTooltip('Add note'), findsNothing);
+    expect(find.byTooltip('Camera'), findsOneWidget);
+    expect(find.byTooltip('Gallery'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Add note'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Add evidence'), findsNothing);
     expect(find.widgetWithText(FilledButton, 'Add signature'), findsOneWidget);
 
-    final addEvidence = find.widgetWithText(FilledButton, 'Add evidence').first;
+    final addEvidence = find.widgetWithText(FilledButton, 'Add note').first;
     await tester.ensureVisible(addEvidence);
     await tester.tap(addEvidence);
     await tester.pumpAndSettle();
+    expect(find.text('Add note'), findsWidgets);
+    expect(
+      find.text('Text notes are saved in the evidence manifest.'),
+      findsOneWidget,
+    );
     await tester.enterText(
       find.byKey(const Key('evidence-description-field')),
       'Scratch near the entry door',

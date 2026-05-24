@@ -2195,11 +2195,6 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
                 onPressed: () => _addEvidence(source: ImageSource.gallery),
                 icon: const Icon(Icons.photo_library_outlined),
               ),
-              IconButton.filledTonal(
-                tooltip: widget.strings.addEvidence,
-                onPressed: () => _addEvidence(source: null),
-                icon: const Icon(Icons.note_add_outlined),
-              ),
             ],
           ),
         ),
@@ -2210,20 +2205,10 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
             title: widget.strings.emptyEvidenceTitle,
             subtitle: widget.strings.emptyEvidenceSubtitle,
             actions: [
-              IconButton.filledTonal(
-                tooltip: widget.strings.takePhoto,
-                onPressed: () => _addEvidence(source: ImageSource.camera),
-                icon: const Icon(Icons.photo_camera_outlined),
-              ),
-              IconButton.filledTonal(
-                tooltip: widget.strings.choosePhoto,
-                onPressed: () => _addEvidence(source: ImageSource.gallery),
-                icon: const Icon(Icons.photo_library_outlined),
-              ),
               FilledButton.icon(
                 onPressed: () => _addEvidence(source: null),
                 icon: const Icon(Icons.note_add_outlined),
-                label: Text(widget.strings.addEvidence),
+                label: Text(widget.strings.addNote),
               ),
             ],
           )
@@ -3303,6 +3288,7 @@ class _EvidenceSheetState extends State<_EvidenceSheet> {
   @override
   Widget build(BuildContext context) {
     final photos = widget.photos;
+    final isNoteOnly = photos.isEmpty;
     return SafeArea(
       child: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
@@ -3316,11 +3302,15 @@ class _EvidenceSheetState extends State<_EvidenceSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _SectionHeader(
-              title: widget.strings.addEvidence,
-              subtitle: widget.strings.hashReady,
+              title: isNoteOnly
+                  ? widget.strings.addNote
+                  : widget.strings.addEvidence,
+              subtitle: isNoteOnly
+                  ? widget.strings.noteEvidenceSubtitle
+                  : widget.strings.hashReady,
             ),
             const SizedBox(height: 12),
-            if (photos.isEmpty)
+            if (isNoteOnly)
               const _HeroImage(
                 asset: 'assets/images/evidence_capture.png',
                 height: 120,
@@ -3400,7 +3390,7 @@ class _EvidenceSheetState extends State<_EvidenceSheet> {
                 ),
               ),
               child: Text(
-                photos.isEmpty
+                isNoteOnly
                     ? widget.strings.saveNote
                     : widget.strings.saveEvidence,
               ),

@@ -119,6 +119,10 @@ class AppStrings {
       ? 'MVP 先预留 Pro 解锁。当前内测版支持 2 个房屋，用于验证多房屋和报告归档体验。'
       : 'Pro unlock is reserved for the MVP. The beta currently supports 2 properties so we can validate multi-property reports.';
   String get addEvidence => isChinese ? '添加证据' : 'Add evidence';
+  String get addNote => isChinese ? '添加备注' : 'Add note';
+  String get noteEvidenceSubtitle => isChinese
+      ? '文字备注也会进入证据清单。'
+      : 'Text notes are saved in the evidence manifest.';
   String get inspectionGuideTitle =>
       isChinese ? '当前检查要完成什么' : 'What to finish in this inspection';
   String get inspectionGuideSubtitle => isChinese
