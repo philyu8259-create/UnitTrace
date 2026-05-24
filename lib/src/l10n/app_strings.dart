@@ -34,6 +34,15 @@ class AppStrings {
       ? '按房源、检查类型、房间清单完成证据包。'
       : 'Move from property to inspection type, room checklist, signatures, and export.';
   String get activeProperty => isChinese ? '当前房源' : 'Active property';
+  String get evidenceDesk => isChinese ? '证据工坊' : 'Evidence Desk';
+  String get localEvidenceVault =>
+      isChinese ? 'Local Evidence Vault' : 'Local Evidence Vault';
+  String get evidenceDeskTagline => isChinese
+      ? 'Timestamp · Hash · Signature'
+      : 'Timestamp · Hash · Signature';
+  String get evidenceDeskTraits => isChinese
+      ? '资产级封存 • 时间戳 • 位置与签名闭环'
+      : 'Evidence vault feel · timestamp chain · signed integrity loop';
   String get recentInspection => isChinese ? '最近检查' : 'Recent inspection';
   String get noRecentInspection => isChinese ? '暂无检查' : 'No inspections yet';
   String get inspectionProgress => isChinese ? '检查进度' : 'Inspection progress';
@@ -41,6 +50,9 @@ class AppStrings {
       isChinese ? '证据完整度' : 'Evidence completeness';
   String get roomsComplete => isChinese ? '房间完成' : 'Rooms complete';
   String get readyToExport => isChinese ? '可以生成报告' : 'Ready to export';
+  String get needSignatureLabel => isChinese ? '缺少签名' : 'Signature needed';
+  String get caseIdLabel => isChinese ? '档案号' : 'Case ID';
+  String get progressLabel => isChinese ? '进度' : 'Progress';
   String get needsEvidence => isChinese ? '还缺证据' : 'Needs evidence';
   String get needsSignature => isChinese ? '建议补签名' : 'Signature recommended';
   String get noActiveInspectionTitle =>
@@ -67,6 +79,8 @@ class AppStrings {
       ? '内测版：最多 2 个房屋，PDF 带水印。本地保存，不上传照片。'
       : 'Beta: up to 2 properties, watermarked PDF. Local-only, no photo upload.';
   String get localOnly => isChinese ? '本地保存' : 'Local only';
+  String get verified => isChinese ? '已验证' : 'Verified';
+  String get ready => isChinese ? '就绪' : 'Ready';
   String get hashReady => isChinese ? '哈希留痕' : 'Hash trail';
   String get pdfEvidence => isChinese ? 'PDF 证据包' : 'PDF packet';
   String get mainFlowTitle => isChinese ? '推荐流程' : 'Recommended flow';
@@ -109,12 +123,15 @@ class AppStrings {
       ? '每个房间都能看到照片、问题、哈希和位置状态。'
       : 'See photo, issue, hash, and location status for every room.';
   String get roomDetail => isChinese ? '当前房间' : 'Current room';
+  String get evidenceIntegrity => isChinese ? '证据完整性' : 'Evidence Integrity';
   String get selectedRoomEvidence =>
       isChinese ? '当前房间证据' : 'Selected room evidence';
   String get completed => isChinese ? '已完成' : 'Complete';
   String get notStarted => isChinese ? '未开始' : 'Not started';
   String get inProgress => isChinese ? '进行中' : 'In progress';
   String get hashStatus => isChinese ? '哈希状态' : 'Hash status';
+  String get photo => isChinese ? '照片' : 'Photo';
+  String get photos => isChinese ? '照片' : 'Photos';
   String get locationStatus => isChinese ? '位置状态' : 'Location status';
   String get timestamp => isChinese ? '时间' : 'Timestamp';
   String get locationCaptured => isChinese ? '已记录位置' : 'Location captured';
@@ -253,6 +270,7 @@ class AppStrings {
   String get ok => isChinese ? '确定' : 'OK';
   String get cancel => isChinese ? '取消' : 'Cancel';
   String get good => isChinese ? '良好' : 'Good';
+  String get reportIdLabel => isChinese ? '报告ID' : 'Report ID';
   String get note => isChinese ? '备注' : 'Note';
   String get issue => isChinese ? '问题' : 'Issue';
   String get urgent => isChinese ? '紧急' : 'Urgent';

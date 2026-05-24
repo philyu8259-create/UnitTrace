@@ -31,16 +31,21 @@ class ReportArchive {
   Future<List<ReportArchiveEntry>> scanDirectory(
     Directory reportDirectory,
   ) async {
-    if (!await reportDirectory.exists()) {
+    if (!reportDirectory.existsSync()) {
       return const [];
     }
-    final manifests = await reportDirectory
-        .list()
-        .where(
-          (entity) => entity is File && p.extension(entity.path) == '.json',
-        )
-        .cast<File>()
-        .toList();
+    final manifests = <File>[];
+    try {
+      manifests.addAll(
+        await reportDirectory
+            .list()
+            .where((entity) => p.extension(entity.path) == '.json')
+            .cast<File>()
+            .toList(),
+      );
+    } catch (_) {
+      return const [];
+    }
     final entries = <ReportArchiveEntry>[];
     for (final manifestFile in manifests) {
       final baseName = p.basenameWithoutExtension(manifestFile.path);

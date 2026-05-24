@@ -10,23 +10,39 @@ class Surface extends StatelessWidget {
     this.padding = const EdgeInsets.all(AppSpacing.lg),
     this.backgroundColor = AppColors.warmSurface,
     this.borderColor = AppColors.line,
+    this.radius = 16,
     this.shadowBlurRadius = 22,
     this.showShadow = true,
+    this.gradientOverlay = true,
   });
 
   final Widget child;
   final EdgeInsetsGeometry padding;
   final Color backgroundColor;
   final Color borderColor;
+  final double radius;
   final double shadowBlurRadius;
   final bool showShadow;
+  final bool gradientOverlay;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(8),
+        gradient: gradientOverlay
+            ? LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.white.withValues(alpha: 0.88),
+                  backgroundColor,
+                  backgroundColor.withValues(alpha: 0.98),
+                ],
+                stops: const [0, 0.12, 1],
+              )
+            : null,
+        color: gradientOverlay ? null : backgroundColor,
+        borderRadius: BorderRadius.circular(radius),
         border: Border.all(color: borderColor),
         boxShadow: showShadow
             ? [
@@ -35,10 +51,26 @@ class Surface extends StatelessWidget {
                   blurRadius: shadowBlurRadius,
                   offset: Offset(0, 10),
                 ),
+                const BoxShadow(
+                  color: Color(0x0D0D3F3A),
+                  blurRadius: 4,
+                  offset: Offset(0, 2),
+                ),
               ]
             : null,
       ),
-      child: Padding(padding: padding, child: child),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(radius),
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.white, Color(0x00000000)],
+            stops: [0.02, 1],
+          ),
+        ),
+        child: Padding(padding: padding, child: child),
+      ),
     );
   }
 }
@@ -107,8 +139,25 @@ class MetricTile extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: borderColor),
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.white, Color(0xFFFAF6EE)],
+        ),
+        boxShadow: [
+          const BoxShadow(
+            color: Color(0x120D3F3A),
+            blurRadius: 18,
+            offset: Offset(0, 9),
+          ),
+          const BoxShadow(
+            color: Color(0x06000000),
+            blurRadius: 3,
+            offset: Offset(0, 1),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,7 +191,8 @@ class TrustPill extends StatelessWidget {
     this.backgroundColor = AppColors.mist,
     this.iconColor = AppColors.deepEmerald,
     this.textColor = AppColors.deepEmerald,
-    this.borderColor = const Color(0xFFD5E1DC),
+    this.borderColor = AppColors.hairline,
+    this.emphasis,
   });
 
   final IconData icon;
@@ -151,29 +201,39 @@ class TrustPill extends StatelessWidget {
   final Color iconColor;
   final Color textColor;
   final Color borderColor;
+  final bool? emphasis;
 
   @override
   Widget build(BuildContext context) {
+    final isVerified = emphasis ?? false;
+    final surfaceColor = isVerified ? AppColors.brassSoft : backgroundColor;
+    final labelTextColor = isVerified ? AppColors.graphite : textColor;
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
+      height: 30,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(8),
+        color: surfaceColor,
+        borderRadius: BorderRadius.circular(999),
         border: Border.all(color: borderColor),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A0D3F3A),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: iconColor),
+          Icon(icon, size: 14, color: isVerified ? AppColors.brass : iconColor),
           const SizedBox(width: AppSpacing.xs + 2),
           Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: textColor,
+            isVerified ? label.toUpperCase() : label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: labelTextColor,
               fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
             ),
           ),
         ],
@@ -223,7 +283,7 @@ class EmptyStatePanel extends StatelessWidget {
                 height: 38,
                 decoration: BoxDecoration(
                   color: iconBackgroundColor,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: iconColor, size: 20),
               ),

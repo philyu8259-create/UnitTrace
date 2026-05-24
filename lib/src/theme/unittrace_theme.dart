@@ -25,14 +25,14 @@ class UnitTraceTheme {
         titleTextStyle: TextStyle(
           color: AppColors.ink,
           fontFamily: 'NotoSansSC',
-          fontSize: 19,
+          fontSize: 20,
           fontWeight: FontWeight.w700,
         ),
       ),
       cardTheme: const CardThemeData(
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(8)),
+          borderRadius: BorderRadius.all(Radius.circular(16)),
           side: BorderSide(color: AppColors.line),
         ),
       ),
@@ -42,38 +42,44 @@ class UnitTraceTheme {
         checkmarkColor: AppColors.deepEmerald,
         labelStyle: TextStyle(color: AppColors.ink),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(8)),
+          borderRadius: BorderRadius.all(Radius.circular(999)),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.deepEmerald,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          minimumSize: const Size.fromHeight(48),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.deepEmerald,
           side: const BorderSide(color: AppColors.line),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          minimumSize: const Size.fromHeight(48),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.line),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.line),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(
             color: AppColors.deepEmerald,
             width: 1.4,
@@ -82,22 +88,36 @@ class UnitTraceTheme {
       ),
       textTheme: const TextTheme(
         headlineSmall: TextStyle(
+          fontSize: 24,
           color: AppColors.ink,
           fontWeight: FontWeight.w700,
           letterSpacing: 0,
         ),
         titleLarge: TextStyle(
+          fontSize: 20,
           color: AppColors.ink,
           fontWeight: FontWeight.w700,
           letterSpacing: 0,
         ),
         titleMedium: TextStyle(
+          fontSize: 16,
           color: AppColors.ink,
           fontWeight: FontWeight.w700,
           letterSpacing: 0,
         ),
+        bodySmall: TextStyle(
+          fontSize: 12,
+          color: AppColors.mutedInk,
+          fontWeight: FontWeight.w400,
+          letterSpacing: 0,
+        ),
+        labelSmall: TextStyle(
+          fontSize: 11,
+          color: AppColors.ink,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.5,
+        ),
         bodyMedium: TextStyle(color: AppColors.ink, letterSpacing: 0),
-        bodySmall: TextStyle(color: AppColors.mutedInk, letterSpacing: 0),
       ),
     );
   }

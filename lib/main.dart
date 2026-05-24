@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -20,6 +21,7 @@ import 'src/l10n/app_strings.dart';
 import 'src/services/hash_service.dart';
 import 'src/services/report_archive.dart';
 import 'src/services/report_exporter.dart';
+import 'src/theme/app_colors.dart';
 import 'src/theme/unittrace_theme.dart';
 
 const _mutedInk = Color(0xFF65706C);
@@ -235,7 +237,14 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: Center(
+          child: Padding(
+            padding: EdgeInsets.all(20),
+            child: _LoadingSkeletonPanel(),
+          ),
+        ),
+      );
     }
     return Scaffold(
       appBar: AppBar(
@@ -326,24 +335,37 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
               };
               return tabBody;
             }
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 330,
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: sidebar,
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 360,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.only(
+                        top: 4,
+                        left: 4,
+                        bottom: 4,
+                        right: 12,
+                      ),
+                      child: sidebar,
+                    ),
                   ),
-                ),
-                const VerticalDivider(width: 1),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
-                    child: content,
+                  const SizedBox(width: 24),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.only(
+                        top: 4,
+                        left: 8,
+                        bottom: 4,
+                        right: 0,
+                      ),
+                      child: content,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             );
           },
         ),
@@ -374,35 +396,117 @@ class _FloatingMobileTabs extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       minimum: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.88),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: AppColors.hairline),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x1A0D3F3A),
+                  blurRadius: 14,
+                  offset: Offset(0, 6),
+                ),
+              ],
+            ),
+            child: NavigationBar(
+              selectedIndex: index,
+              onDestinationSelected: onChanged,
+              height: 60,
+              backgroundColor: Colors.transparent,
+              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+              indicatorColor: _mist,
+              destinations: [
+                NavigationDestination(
+                  icon: const Icon(Icons.apartment_outlined),
+                  selectedIcon: const Icon(Icons.apartment),
+                  label: strings.propertiesTab,
+                ),
+                NavigationDestination(
+                  icon: const Icon(Icons.folder_copy_outlined),
+                  selectedIcon: const Icon(Icons.folder_copy),
+                  label: strings.reportsTab,
+                ),
+                NavigationDestination(
+                  icon: const Icon(Icons.more_horiz),
+                  selectedIcon: const Icon(Icons.more),
+                  label: strings.moreTab,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LoadingSkeletonPanel extends StatelessWidget {
+  const _LoadingSkeletonPanel({this.lines = 5});
+
+  final int lines;
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 540),
       child: _PremiumSurface(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-        backgroundColor: Colors.white,
-        child: NavigationBar(
-          selectedIndex: index,
-          onDestinationSelected: onChanged,
-          height: 58,
-          backgroundColor: Colors.transparent,
-          indicatorColor: _mist,
-          destinations: [
-            NavigationDestination(
-              icon: const Icon(Icons.apartment_outlined),
-              selectedIcon: const Icon(Icons.apartment),
-              label: strings.propertiesTab,
+        backgroundColor: _warmSurface,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _SkeletonBar(widthFactor: 0.56),
+            const SizedBox(height: 14),
+            _SkeletonBar(widthFactor: 0.88),
+            const SizedBox(height: 10),
+            const Row(
+              children: [
+                _SkeletonBar(width: 18, height: 18),
+                SizedBox(width: 8),
+                _SkeletonBar(width: 110, height: 12),
+              ],
             ),
-            NavigationDestination(
-              icon: const Icon(Icons.folder_copy_outlined),
-              selectedIcon: const Icon(Icons.folder_copy),
-              label: strings.reportsTab,
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.more_horiz),
-              selectedIcon: const Icon(Icons.more),
-              label: strings.moreTab,
-            ),
+            const SizedBox(height: 16),
+            for (var i = 0; i < lines; i++) ...[
+              _SkeletonBar(
+                widthFactor: i.isEven ? 0.95 : (i % 3 == 1 ? 0.74 : 0.84),
+                height: 12 + (i % 2 == 0 ? 1.0 : 0.0),
+              ),
+              const SizedBox(height: 8),
+            ],
           ],
         ),
       ),
     );
+  }
+}
+
+class _SkeletonBar extends StatelessWidget {
+  const _SkeletonBar({this.width, this.widthFactor, this.height = 14})
+    : assert(width == null || width > 0),
+      assert(widthFactor == null || (widthFactor > 0 && widthFactor <= 1));
+
+  final double? width;
+  final double? widthFactor;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final bar = Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F1EA),
+        borderRadius: BorderRadius.circular(10),
+      ),
+    );
+    return width == null && widthFactor != null
+        ? FractionallySizedBox(widthFactor: widthFactor, child: bar)
+        : bar;
   }
 }
 
@@ -412,21 +516,32 @@ class _PremiumSurface extends StatelessWidget {
     this.padding = const EdgeInsets.all(16),
     this.backgroundColor = _warmSurface,
     this.borderColor = _line,
+    this.radius = 20,
   });
 
   final Widget child;
   final EdgeInsetsGeometry padding;
   final Color backgroundColor;
   final Color borderColor;
+  final double radius;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(radius),
+        gradient: LinearGradient(
+          colors: [Colors.white.withValues(alpha: 0.9), backgroundColor],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
         border: Border.all(color: borderColor),
         boxShadow: const [
+          BoxShadow(
+            color: Color(0x18000000),
+            blurRadius: 12,
+            offset: Offset(0, 2),
+          ),
           BoxShadow(
             color: Color(0x14000000),
             blurRadius: 22,
@@ -434,7 +549,19 @@ class _PremiumSurface extends StatelessWidget {
           ),
         ],
       ),
-      child: Padding(padding: padding, child: child),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(radius),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+          gradient: const LinearGradient(
+            colors: [Colors.white54, Colors.transparent],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            stops: [0, 0.2],
+          ),
+        ),
+        child: Padding(padding: padding, child: child),
+      ),
     );
   }
 }
@@ -465,30 +592,51 @@ class _HeroImage extends StatelessWidget {
 }
 
 class _TrustPill extends StatelessWidget {
-  const _TrustPill({required this.icon, required this.label});
+  const _TrustPill({
+    required this.icon,
+    required this.label,
+    this.verified = false,
+    this.uppercase = false,
+  });
 
   final IconData icon;
   final String label;
+  final bool verified;
+  final bool uppercase;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      height: 30,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: _mist,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFD5E1DC)),
+        color: verified ? AppColors.brassSoft : AppColors.estateGreenSoft,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: verified ? AppColors.brass : AppColors.hairline,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: _deepEmerald),
+          Icon(
+            icon,
+            size: 14,
+            color: verified ? AppColors.brass : AppColors.estateGreen,
+          ),
           const SizedBox(width: 6),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: _deepEmerald,
-              fontWeight: FontWeight.w700,
+          Flexible(
+            child: Text(
+              uppercase
+                  ? label.toUpperCase()
+                  : (verified ? label.toUpperCase() : label),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              softWrap: false,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: verified ? AppColors.brass : AppColors.estateGreen,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
@@ -526,7 +674,7 @@ class _SectionHeader extends StatelessWidget {
             ],
           ),
         ),
-        ?trailing,
+        ...(trailing == null ? const <Widget>[] : [trailing!]),
       ],
     );
   }
@@ -545,29 +693,39 @@ class _MetricBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: _line),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _line),
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.white, Color(0xFFF8F7F2)],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: _deepEmerald, size: 18),
-            const SizedBox(height: 10),
-            Text(
-              value,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 2),
-            Text(label, style: Theme.of(context).textTheme.bodySmall),
-          ],
-        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x120D3F3A),
+            blurRadius: 12,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: _deepEmerald, size: 18),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 2),
+          Text(label, style: Theme.of(context).textTheme.bodySmall),
+        ],
       ),
     );
   }
@@ -701,6 +859,18 @@ class _DashboardSidebar extends StatelessWidget {
             signatures:
                 signaturesByInspection[selectedInspection!.id] ?? const [],
           );
+    final readyInspectionCount = inspections
+        .where(
+          (inspection) => InspectionProgressSummary.build(
+            inspection: inspection,
+            rooms: roomsByInspection[inspection.id] ?? const [],
+            evidenceItems: evidenceByInspection[inspection.id] ?? const [],
+            signatures: signaturesByInspection[inspection.id] ?? const [],
+          ).canExport,
+        )
+        .length;
+    final deskReady = selectedSummary?.canExport ?? false;
+    final deskBadge = deskReady ? strings.verified : strings.localOnly;
     final primaryAction = selectedInspection == null
         ? FilledButton.icon(
             onPressed: selectedProperty == null
@@ -722,62 +892,83 @@ class _DashboardSidebar extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _PremiumSurface(
-          backgroundColor: const Color(0xFFF8F2E8),
+          backgroundColor: AppColors.estateGreenSoft,
+          borderColor: AppColors.hairline,
+          radius: 20,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const _HeroImage(asset: 'assets/images/workbench_hero.png'),
-              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      'UNITTRACE',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: AppColors.graphite,
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                  ),
+                  _TrustPill(
+                    icon: deskReady
+                        ? Icons.verified_outlined
+                        : Icons.cloud_off_outlined,
+                    label: deskBadge,
+                    verified: deskReady,
+                    uppercase: true,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
               Text(
-                strings.dashboardTitle,
+                strings.evidenceDesk,
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
-              const SizedBox(height: 6),
               Text(
-                strings.dashboardSubtitle,
+                strings.localEvidenceVault,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 14),
+              Text(
+                strings.evidenceDeskTagline,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                strings.evidenceDeskTraits,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 14),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
+              Row(
                 children: [
-                  _TrustPill(
-                    icon: Icons.lock_outline,
-                    label: strings.localOnly,
+                  Expanded(
+                    child: _MetricBadge(
+                      value: '${properties.length}',
+                      label: strings.propertiesMetric,
+                      icon: Icons.apartment,
+                    ),
                   ),
-                  _TrustPill(icon: Icons.fingerprint, label: strings.hashReady),
-                  _TrustPill(
-                    icon: Icons.picture_as_pdf_outlined,
-                    label: strings.pdfEvidence,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _MetricBadge(
+                      value: '${inspections.length}',
+                      label: strings.inspectionsMetric,
+                      icon: Icons.fact_check_outlined,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _MetricBadge(
+                      value: '$readyInspectionCount',
+                      label: strings.readyToExport,
+                      icon: Icons.verified_outlined,
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 14),
               SizedBox(width: double.infinity, child: primaryAction),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  _MetricBadge(
-                    value: '${properties.length}',
-                    label: strings.propertiesMetric,
-                    icon: Icons.apartment,
-                  ),
-                  const SizedBox(width: 10),
-                  _MetricBadge(
-                    value: '${inspections.length}',
-                    label: strings.inspectionsMetric,
-                    icon: Icons.fact_check_outlined,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              _DashboardStatusPanel(
-                strings: strings,
-                property: selectedProperty,
-                inspection: selectedInspection,
-                summary: selectedSummary,
-              ),
             ],
           ),
         ),
@@ -887,76 +1078,6 @@ class _DashboardSidebar extends StatelessWidget {
   }
 }
 
-class _DashboardStatusPanel extends StatelessWidget {
-  const _DashboardStatusPanel({
-    required this.strings,
-    required this.property,
-    required this.inspection,
-    required this.summary,
-  });
-
-  final AppStrings strings;
-  final PropertyRecord? property;
-  final InspectionRecord? inspection;
-  final InspectionProgressSummary? summary;
-
-  @override
-  Widget build(BuildContext context) {
-    final status = summary == null
-        ? strings.noRecentInspection
-        : summary!.canExport
-        ? strings.readyToExport
-        : summary!.evidenceCount == 0
-        ? strings.needsEvidence
-        : strings.needsSignature;
-    final progress = summary == null
-        ? '0%'
-        : '${(summary!.completionRatio * 100).round()}%';
-    return _PremiumSurface(
-      padding: const EdgeInsets.all(12),
-      backgroundColor: Colors.white,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            strings.activeProperty,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            property?.name ?? strings.noProperties,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              _MetricBadge(
-                value: progress,
-                label: strings.evidenceCompleteness,
-                icon: Icons.timeline_outlined,
-              ),
-              const SizedBox(width: 10),
-              _MetricBadge(
-                value: inspection == null
-                    ? '--'
-                    : _typeLabel(strings, inspection!.type),
-                label: strings.recentInspection,
-                icon: Icons.fact_check_outlined,
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          _StatusPill(label: status, emphasized: summary?.canExport ?? false),
-        ],
-      ),
-    );
-  }
-}
-
 class _PropertyDashboardCard extends StatelessWidget {
   const _PropertyDashboardCard({
     required this.strings,
@@ -976,76 +1097,122 @@ class _PropertyDashboardCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final status = latestSummary == null
+    final exportReady = latestSummary?.canExport ?? false;
+    final latestType = latestInspection == null
         ? strings.noRecentInspection
-        : latestSummary!.canExport
-        ? strings.readyToExport
-        : latestSummary!.evidenceCount == 0
-        ? strings.needsEvidence
-        : strings.needsSignature;
+        : _typeLabel(strings, latestInspection!.type);
+    final evidenceCount = latestSummary?.evidenceCount ?? 0;
+    final signatureCount = latestSummary?.signatureCount ?? 0;
+    final exportStatus = exportReady ? strings.ready : strings.needsSignature;
+    final signatureStatus = signatureCount > 0
+        ? strings.signatures
+        : strings.needSignatureLabel;
+    final progress = latestSummary?.completionRatio ?? 0.0;
+    final caseId = latestInspection == null
+        ? '--'
+        : _caseIdForInspection(latestInspection!);
     return _PremiumSurface(
       padding: EdgeInsets.zero,
-      backgroundColor: selected ? _mist : _warmSurface,
-      borderColor: selected ? const Color(0xFFC9DCD5) : _line,
+      backgroundColor: Colors.white,
+      borderColor: selected ? AppColors.deepEmerald : AppColors.hairline,
+      radius: 16,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(16),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: _deepEmerald,
-                  borderRadius: BorderRadius.circular(8),
+          padding: const EdgeInsets.fromLTRB(0, 4, 12, 12),
+          child: IntrinsicHeight(
+            child: Row(
+              children: [
+                Container(
+                  width: 3,
+                  color: selected ? AppColors.deepEmerald : AppColors.hairline,
                 ),
-                child: const Icon(Icons.apartment, color: Colors.white),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      property.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
+                const SizedBox(width: 12),
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: AppColors.estateGreenSoft,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.estateGreenSoft),
+                  ),
+                  child: const Icon(
+                    Icons.apartment,
+                    color: AppColors.estateGreen,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        property.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      property.address.isEmpty
-                          ? strings.address
-                          : property.address,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: 7),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        _StatusPill(
-                          label: latestInspection == null
-                              ? strings.noRecentInspection
-                              : _typeLabel(strings, latestInspection!.type),
-                        ),
-                        _StatusPill(
-                          label:
-                              '${latestSummary?.evidenceCount ?? 0} ${strings.evidence}',
-                        ),
-                        _StatusPill(label: status),
-                      ],
-                    ),
-                  ],
+                      const SizedBox(height: 2),
+                      Text(
+                        property.address.isEmpty
+                            ? strings.address
+                            : property.address,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 7),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          _StatusPill(label: latestType),
+                          _StatusPill(
+                            label: '${strings.evidence} $evidenceCount',
+                            emphasized: evidenceCount > 0,
+                          ),
+                          _StatusPill(
+                            label: signatureStatus,
+                            emphasized: signatureCount > 0,
+                          ),
+                          _StatusPill(
+                            label: exportStatus,
+                            emphasized: exportReady,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '${strings.caseIdLabel}: $caseId',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 6),
+                      LinearProgressIndicator(
+                        value: progress.clamp(0, 1),
+                        minHeight: 7,
+                        borderRadius: BorderRadius.circular(10),
+                        backgroundColor: AppColors.paper,
+                        color: exportReady ? AppColors.success : _line,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${strings.progressLabel}: ${(progress * 100).round()}%',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                if (selected) ...[
+                  const SizedBox(width: 6),
+                  const Icon(
+                    Icons.radio_button_checked,
+                    color: AppColors.success,
+                    size: 16,
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       ),
@@ -1075,7 +1242,7 @@ class _InspectionTypeCard extends StatelessWidget {
       backgroundColor: emphasized ? _mist : Colors.white,
       borderColor: emphasized ? const Color(0xFFC9DCD5) : _line,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(16),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -1176,8 +1343,8 @@ class _StatusPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
-        color: emphasized ? _deepEmerald : _mist,
-        borderRadius: BorderRadius.circular(8),
+        color: emphasized ? _deepEmerald : AppColors.mist,
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: emphasized ? _deepEmerald : const Color(0xFFD5E1DC),
         ),
@@ -1218,38 +1385,13 @@ class _EmptyDashboard extends StatelessWidget {
               ),
               const SizedBox(height: 18),
               Text(
-                strings.trustedOffline,
+                strings.noProperties,
                 style: Theme.of(context).textTheme.headlineSmall,
-                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
-              Text(
-                strings.noProperties,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _TrustPill(
-                    icon: Icons.lock_outline,
-                    label: strings.localOnly,
-                  ),
-                  _TrustPill(icon: Icons.fingerprint, label: strings.hashReady),
-                  _TrustPill(
-                    icon: Icons.picture_as_pdf_outlined,
-                    label: strings.pdfEvidence,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              FilledButton.icon(
-                onPressed: onCreateProperty,
-                icon: const Icon(Icons.add_home_work_outlined),
-                label: Text(strings.createProperty),
+              _SectionHeader(
+                title: strings.createProperty,
+                subtitle: strings.noActiveInspectionSubtitle(''),
               ),
             ],
           ),
@@ -1638,11 +1780,9 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
   @override
   Widget build(BuildContext context) {
     if (_busy) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(40),
-          child: CircularProgressIndicator(),
-        ),
+      return const Padding(
+        padding: EdgeInsets.all(24),
+        child: _LoadingSkeletonPanel(lines: 7),
       );
     }
     final roomEvidence = _evidence
@@ -1663,100 +1803,113 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
       InspectionNextStep.addSignature => widget.strings.nextStepSignature,
       InspectionNextStep.exportReport => widget.strings.nextStepReport,
     };
+    final readiness = (summary.completionRatio * 100).round();
+    final integrityReady = summary.canExport;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _PremiumSurface(
           padding: const EdgeInsets.all(14),
-          backgroundColor: const Color(0xFFF8F2E8),
+          backgroundColor: Colors.white,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const _HeroImage(
-                asset: 'assets/images/evidence_capture.png',
-                height: 132,
-              ),
-              const SizedBox(height: 14),
               Text(
-                widget.property.name,
-                style: Theme.of(context).textTheme.headlineSmall,
-                maxLines: 2,
+                '${widget.strings.evidenceIntegrity} · ${widget.property.name}',
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleMedium,
               ),
-              const SizedBox(height: 3),
+              const SizedBox(height: 6),
               Text(
-                '${_typeLabel(widget.strings, widget.inspection.type)} | ${widget.property.address}',
+                _typeLabel(widget.strings, widget.inspection.type),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 14),
               Row(
                 children: [
-                  _MetricBadge(
-                    value: '${_evidence.length}',
-                    label: widget.strings.evidence,
-                    icon: Icons.photo_library_outlined,
+                  Expanded(
+                    child: _TrustPill(
+                      icon: Icons.shield_outlined,
+                      label: widget.strings.evidenceIntegrity,
+                      verified: integrityReady,
+                      uppercase: false,
+                    ),
                   ),
-                  const SizedBox(width: 10),
-                  _MetricBadge(
-                    value: '${summary.issueCount}',
-                    label: widget.strings.issue,
-                    icon: Icons.report_problem_outlined,
-                  ),
-                  const SizedBox(width: 10),
-                  _MetricBadge(
-                    value: '${_signatures.length}',
-                    label: widget.strings.signatures,
-                    icon: Icons.draw_outlined,
+                  const SizedBox(width: 8),
+                  _TrustPill(
+                    icon: integrityReady
+                        ? Icons.verified_outlined
+                        : Icons.hourglass_top_outlined,
+                    label: integrityReady
+                        ? '${widget.strings.ready} ${widget.strings.reportReady}'
+                        : widget.strings.inProgress,
+                    verified: integrityReady,
+                    uppercase: false,
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
-              _PremiumSurface(
-                padding: const EdgeInsets.all(12),
-                backgroundColor: _warmSurface,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: _mist,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.route_outlined,
-                        color: _deepEmerald,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.strings.nextStep,
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            nextStepMessage,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  _TrustPill(
+                    icon: Icons.photo_library_outlined,
+                    label:
+                        '${widget.strings.photo}: ${summary.photoCount} ${widget.strings.photos}',
+                    verified: summary.photoCount > 0,
+                    uppercase: false,
+                  ),
+                  _TrustPill(
+                    icon: Icons.fingerprint,
+                    label:
+                        '${widget.strings.hashStatus}: ${summary.hashCount} ${widget.strings.hashCaptured}',
+                    verified: summary.hashCount > 0,
+                    uppercase: false,
+                  ),
+                  _TrustPill(
+                    icon: Icons.location_on_outlined,
+                    label:
+                        '${widget.strings.locationStatus}: ${summary.locationCount} ${widget.strings.locationCaptured}',
+                    verified: summary.locationCount > 0,
+                    uppercase: false,
+                  ),
+                  _TrustPill(
+                    icon: Icons.draw_outlined,
+                    label:
+                        '${widget.strings.signatures}: ${summary.signatureCount} ${summary.signatureCount > 0 ? widget.strings.signatureReady : widget.strings.needsSignature}',
+                    verified: summary.signatureCount > 0,
+                    uppercase: false,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '${widget.strings.evidenceIntegrity} ${widget.strings.progressLabel}: $readiness%',
+                style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 10),
               LinearProgressIndicator(
                 value: summary.completionRatio.clamp(0, 1),
                 minHeight: 7,
                 borderRadius: BorderRadius.circular(8),
-                backgroundColor: Colors.white,
+                backgroundColor: AppColors.paper,
                 color: _deepEmerald,
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  const Icon(Icons.checklist_rtl_outlined, size: 18),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      nextStepMessage,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -1988,31 +2141,48 @@ class _RoomChecklistCard extends StatelessWidget {
         : status.evidenceCount == 0
         ? strings.notStarted
         : strings.inProgress;
+    final evidenceRatio =
+        (status.evidenceCount > 0 ? 0.33 : 0.0) +
+        (status.hashReady ? 0.34 : 0.0) +
+        (status.locationReady ? 0.33 : 0.0);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: _PremiumSurface(
         padding: EdgeInsets.zero,
-        backgroundColor: selected ? _mist : Colors.white,
-        borderColor: selected ? const Color(0xFFC9DCD5) : _line,
+        backgroundColor: Colors.white,
+        borderColor: selected ? AppColors.deepEmerald : AppColors.hairline,
+        radius: 16,
         child: InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(16),
           onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
+          child: IntrinsicHeight(
             child: Row(
               children: [
+                Container(
+                  width: 4,
+                  color: status.isComplete
+                      ? AppColors.success
+                      : selected
+                      ? AppColors.deepEmerald
+                      : AppColors.hairline,
+                ),
+                const SizedBox(width: 12),
                 Container(
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: status.isComplete ? _deepEmerald : _mist,
-                    borderRadius: BorderRadius.circular(8),
+                    color: status.isComplete
+                        ? AppColors.success
+                        : AppColors.estateGreenSoft,
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     status.isComplete
                         ? Icons.check_circle_outline
                         : Icons.meeting_room_outlined,
-                    color: status.isComplete ? Colors.white : _deepEmerald,
+                    color: status.isComplete
+                        ? Colors.white
+                        : AppColors.deepEmerald,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -2028,7 +2198,24 @@ class _RoomChecklistCard extends StatelessWidget {
                           fontWeight: FontWeight.w800,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${status.evidenceCount} ${strings.evidence} · ${status.photoCount} ${strings.photos}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 8),
+                      LinearProgressIndicator(
+                        value: evidenceRatio.clamp(0, 1),
+                        minHeight: 6,
+                        borderRadius: BorderRadius.circular(8),
+                        backgroundColor: AppColors.paper,
+                        color: status.isComplete
+                            ? AppColors.success
+                            : selected
+                            ? AppColors.deepEmerald
+                            : _line,
+                      ),
+                      const SizedBox(height: 10),
                       Wrap(
                         spacing: 6,
                         runSpacing: 6,
@@ -2061,7 +2248,14 @@ class _RoomChecklistCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                _StatusPill(label: stateLabel, emphasized: status.isComplete),
+                _TrustPill(
+                  icon: status.isComplete
+                      ? Icons.verified_outlined
+                      : Icons.pending_outlined,
+                  label: stateLabel,
+                  verified: status.isComplete,
+                  uppercase: status.isComplete,
+                ),
               ],
             ),
           ),
@@ -2240,7 +2434,7 @@ class _ReportHistoryPanelState extends State<_ReportHistoryPanel> {
             ),
             const SizedBox(height: 14),
             if (snapshot.connectionState == ConnectionState.waiting)
-              const Center(child: CircularProgressIndicator())
+              const _LoadingSkeletonPanel(lines: 7)
             else if (reports.isEmpty)
               _EmptyActionPanel(
                 icon: Icons.inventory_2_outlined,
@@ -2282,50 +2476,123 @@ class _ReportHistoryPanelState extends State<_ReportHistoryPanel> {
                         widget.strings,
                         inspectionType,
                       );
+                      final generatedAt = MaterialLocalizations.of(
+                        context,
+                      ).formatFullDate(report.generatedAt.toLocal());
+                      final generatedTime = TimeOfDay.fromDateTime(
+                        report.generatedAt.toLocal(),
+                      ).format(context);
+                      final sampleHash = report.manifestHash.isEmpty
+                          ? widget.strings.hashMissing
+                          : _shortHashWithEdges(report.manifestHash);
                       return _PremiumSurface(
-                        padding: EdgeInsets.zero,
-                        child: ListTile(
-                          leading: Container(
-                            width: 42,
-                            height: 42,
-                            decoration: BoxDecoration(
-                              color: _mist,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(
-                              Icons.picture_as_pdf_outlined,
-                              color: _deepEmerald,
-                            ),
-                          ),
-                          title: Text(
-                            '${report.propertyName} · $inspectionLabel',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          subtitle: Text(
-                            '${report.reportId} | ${report.evidenceCount} ${widget.strings.evidence.toLowerCase()} | ${_shortHash(report.manifestHash)}',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          trailing: Wrap(
-                            spacing: 2,
-                            children: [
-                              IconButton(
-                                tooltip: widget.strings.viewReport,
-                                onPressed: () => _openPdfPreview(
-                                  context,
-                                  widget.strings,
-                                  report.pdfFile,
+                        padding: const EdgeInsets.all(12),
+                        backgroundColor: Colors.white,
+                        borderColor: AppColors.hairline,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.estateGreenSoft,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(
+                                    Icons.picture_as_pdf_outlined,
+                                    color: AppColors.deepEmerald,
+                                  ),
                                 ),
-                                icon: const Icon(Icons.visibility_outlined),
-                              ),
-                              IconButton(
-                                tooltip: widget.strings.shareReportAction,
-                                onPressed: () => _sharePdf(report.pdfFile),
-                                icon: const Icon(Icons.ios_share_outlined),
-                              ),
-                            ],
-                          ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'PDF REPORT · MANIFEST',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelSmall
+                                            ?.copyWith(
+                                              color: AppColors.mutedInk,
+                                              fontSize: 10,
+                                              letterSpacing: 0.6,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${report.propertyName} · $inspectionLabel',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.titleMedium,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                _TrustPill(
+                                  icon: Icons.verified_outlined,
+                                  label: widget.strings.verified,
+                                  verified: true,
+                                  uppercase: true,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '${widget.strings.reportHistory} · $generatedAt, $generatedTime',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            const SizedBox(height: 6),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: [
+                                _StatusPill(
+                                  label:
+                                      '${widget.strings.evidence}: ${report.evidenceCount}',
+                                ),
+                                _StatusPill(
+                                  label:
+                                      '${widget.strings.photos}: ${report.photoCount}',
+                                ),
+                                _StatusPill(
+                                  label:
+                                      '${widget.strings.hashStatus}: $sampleHash',
+                                  emphasized: report.manifestHash.isNotEmpty,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Text(
+                                  '${widget.strings.reportIdLabel}: ${report.reportId}',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                                const Spacer(),
+                                IconButton(
+                                  tooltip: widget.strings.viewReport,
+                                  onPressed: () => _openPdfPreview(
+                                    context,
+                                    widget.strings,
+                                    report.pdfFile,
+                                  ),
+                                  icon: const Icon(Icons.visibility_outlined),
+                                ),
+                                IconButton(
+                                  tooltip: widget.strings.shareReportAction,
+                                  onPressed: () => _sharePdf(report.pdfFile),
+                                  icon: const Icon(Icons.ios_share_outlined),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       );
                     },
@@ -2470,44 +2737,87 @@ class _EvidenceCard extends StatelessWidget {
         : _deepEmerald;
     final photoFile = item.photoPath == null ? null : File(item.photoPath!);
     final hasPhotoFile = photoFile?.existsSync() ?? false;
+    final shortHash = item.photoHash == null || item.photoHash!.isEmpty
+        ? strings.hashMissing
+        : _shortHashWithEdges(item.photoHash!);
     final timestamp =
         '${MaterialLocalizations.of(context).formatMediumDate(item.capturedAt.toLocal())} '
         '${TimeOfDay.fromDateTime(item.capturedAt.toLocal()).format(context)}';
+    final gps = item.latitude == null || item.longitude == null
+        ? strings.locationMissing
+        : '${item.latitude!.toStringAsFixed(5)}, ${item.longitude!.toStringAsFixed(5)}';
+    final watermark = item.photoHash == null
+        ? 'UNITTRACE'
+        : 'UNITTRACE · ${item.photoHash!}${item.photoHash!.isNotEmpty ? ' · $timestamp' : ''}';
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: _PremiumSurface(
-        padding: const EdgeInsets.all(12),
-        child: Row(
+        padding: EdgeInsets.zero,
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (hasPhotoFile)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.file(
-                  photoFile!,
-                  width: 96,
-                  height: 72,
-                  fit: BoxFit.cover,
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
                 ),
-              )
-            else
-              Container(
-                width: 96,
-                height: 72,
-                decoration: BoxDecoration(
-                  color: _mist,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFD5E1DC)),
-                ),
-                child: Icon(
-                  item.photoPath == null
-                      ? Icons.note_alt_outlined
-                      : Icons.broken_image_outlined,
-                  color: _deepEmerald,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (hasPhotoFile)
+                      Image.file(photoFile!, fit: BoxFit.cover)
+                    else
+                      Container(
+                        color: AppColors.mist,
+                        child: Icon(
+                          item.photoPath == null
+                              ? Icons.note_alt_outlined
+                              : Icons.broken_image_outlined,
+                          color: AppColors.deepEmerald,
+                        ),
+                      ),
+                    if (hasPhotoFile)
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withValues(alpha: 0.35),
+                            ],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          ),
+                        ),
+                      ),
+                    if (hasPhotoFile)
+                      Align(
+                        alignment: Alignment.bottomLeft,
+                        child: Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Text(
+                            watermark,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
-            const SizedBox(width: 12),
-            Expanded(
+            ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+              ).copyWith(bottom: 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -2553,17 +2863,17 @@ class _EvidenceCard extends StatelessWidget {
                         emphasized: hasPhotoFile,
                       ),
                       _StatusPill(
-                        label: item.photoHash == null
-                            ? strings.hashMissing
-                            : 'SHA ${_shortHash(item.photoHash!)}',
+                        label: 'HASH: $shortHash',
                         emphasized: item.photoHash != null,
                       ),
                       _StatusPill(
-                        label: item.latitude == null || item.longitude == null
-                            ? strings.locationMissing
-                            : '${item.latitude!.toStringAsFixed(5)}, ${item.longitude!.toStringAsFixed(5)}',
+                        label: '${strings.locationStatus}: $gps',
                         emphasized:
                             item.latitude != null && item.longitude != null,
+                      ),
+                      _StatusPill(
+                        label:
+                            '${strings.note}: ${item.description.isEmpty ? strings.note : item.description}',
                       ),
                     ],
                   ),
@@ -3002,11 +3312,21 @@ Future<Position?> _currentPosition() async {
   );
 }
 
-String _shortHash(String hash) {
-  if (hash.length <= 12) {
+String _shortHashWithEdges(String hash) {
+  if (hash.length <= 10) {
     return hash;
   }
-  return hash.substring(0, 12);
+  return '${hash.substring(0, 6)} · ${hash.substring(hash.length - 4)}';
+}
+
+String _caseIdForInspection(InspectionRecord inspection) {
+  final date = inspection.createdAt.toUtc().toIso8601String().split('T').first;
+  final dateTag = date.replaceAll('-', '');
+  final suffixSource = inspection.id.replaceAll('-', '');
+  final suffix = suffixSource.length >= 4
+      ? suffixSource.substring(0, 4).toUpperCase()
+      : suffixSource.toUpperCase().padRight(4, '0');
+  return 'CASE-$dateTag-$suffix';
 }
 
 String _typeLabel(AppStrings strings, InspectionType type) {

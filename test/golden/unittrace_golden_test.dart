@@ -87,13 +87,31 @@ void main() {
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Reports'));
-    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump();
+    await _pumpUntilReportHistoryReady(tester);
 
     await expectLater(
       find.byType(UnitTraceApp),
       matchesGoldenFile('goldens/report_history.png'),
     );
   });
+}
+
+Future<void> _pumpUntilReportHistoryReady(WidgetTester tester) async {
+  final end = DateTime.now().add(const Duration(seconds: 5));
+  while (DateTime.now().isBefore(end)) {
+    await tester.pump(const Duration(milliseconds: 100));
+    final hasStableHistoryContent =
+        find.text('Where reports come from').evaluate().isNotEmpty ||
+        find.text('No exported reports yet').evaluate().isNotEmpty ||
+        find.text('PDF REPORT · MANIFEST').evaluate().isNotEmpty;
+    final isLoading = find
+        .byType(CircularProgressIndicator)
+        .evaluate()
+        .isNotEmpty;
+    if (!isLoading && hasStableHistoryContent) return;
+  }
+  throw Exception('Report history did not reach stable content');
 }
 
 Future<InMemoryUnitTraceStore> _seedStore() async {
