@@ -14,17 +14,17 @@ import 'package:uuid/uuid.dart';
 import 'src/data/sqlite_unittrace_store.dart';
 import 'src/data/unittrace_store.dart';
 import 'src/domain/entities.dart';
+import 'src/domain/inspection_progress.dart';
 import 'src/domain/room_templates.dart';
 import 'src/l10n/app_strings.dart';
 import 'src/services/hash_service.dart';
 import 'src/services/report_archive.dart';
 import 'src/services/report_exporter.dart';
+import 'src/theme/unittrace_theme.dart';
 
-const _ink = Color(0xFF172321);
 const _mutedInk = Color(0xFF65706C);
 const _deepEmerald = Color(0xFF0D3F3A);
 const _mist = Color(0xFFE7F0EC);
-const _ivory = Color(0xFFFBF7EF);
 const _warmSurface = Color(0xFFFFFCF7);
 const _line = Color(0xFFE4E0D8);
 const _brass = Color(0xFFD49A36);
@@ -81,101 +81,7 @@ class UnitTraceApp extends StatelessWidget {
       locale: initialLocale,
       supportedLocales: const [Locale('en'), Locale('zh', 'Hans')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      theme: ThemeData(
-        useMaterial3: true,
-        fontFamily: 'NotoSansSC',
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: _deepEmerald,
-          primary: _deepEmerald,
-          secondary: _brass,
-          surface: _warmSurface,
-          error: _danger,
-        ),
-        scaffoldBackgroundColor: _ivory,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: _ivory,
-          foregroundColor: _ink,
-          elevation: 0,
-          centerTitle: false,
-          titleTextStyle: TextStyle(
-            color: _ink,
-            fontFamily: 'NotoSansSC',
-            fontSize: 19,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        cardTheme: const CardThemeData(
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(8)),
-            side: BorderSide(color: _line),
-          ),
-        ),
-        chipTheme: const ChipThemeData(
-          side: BorderSide(color: _line),
-          selectedColor: _mist,
-          checkmarkColor: _deepEmerald,
-          labelStyle: TextStyle(color: _ink),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(8)),
-          ),
-        ),
-        filledButtonTheme: FilledButtonThemeData(
-          style: FilledButton.styleFrom(
-            backgroundColor: _deepEmerald,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-          ),
-        ),
-        outlinedButtonTheme: OutlinedButtonThemeData(
-          style: OutlinedButton.styleFrom(
-            foregroundColor: _deepEmerald,
-            side: const BorderSide(color: _line),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-          ),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: _line),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: _line),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: _deepEmerald, width: 1.4),
-          ),
-        ),
-        textTheme: const TextTheme(
-          headlineSmall: TextStyle(
-            color: _ink,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0,
-          ),
-          titleLarge: TextStyle(
-            color: _ink,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0,
-          ),
-          titleMedium: TextStyle(
-            color: _ink,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0,
-          ),
-          bodyMedium: TextStyle(color: _ink, letterSpacing: 0),
-          bodySmall: TextStyle(color: _mutedInk, letterSpacing: 0),
-        ),
-      ),
+      theme: UnitTraceTheme.build(),
       home: UnitTraceHome(
         store: store,
         captureLocation: captureLocation,
@@ -205,6 +111,9 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
   final _uuid = const Uuid();
   List<PropertyRecord> _properties = [];
   List<InspectionRecord> _inspections = [];
+  Map<String, List<RoomRecord>> _roomsByInspection = {};
+  Map<String, List<EvidenceItemRecord>> _evidenceByInspection = {};
+  Map<String, List<SignatureRecord>> _signaturesByInspection = {};
   PropertyRecord? _selectedProperty;
   InspectionRecord? _selectedInspection;
   int _mobileTabIndex = 0;
@@ -221,10 +130,27 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
   Future<void> _reload() async {
     final properties = await widget.store.loadProperties();
     final inspections = await widget.store.loadInspections();
+    final roomsByInspection = <String, List<RoomRecord>>{};
+    final evidenceByInspection = <String, List<EvidenceItemRecord>>{};
+    final signaturesByInspection = <String, List<SignatureRecord>>{};
+    for (final inspection in inspections) {
+      roomsByInspection[inspection.id] = await widget.store.loadRooms(
+        inspection.id,
+      );
+      evidenceByInspection[inspection.id] = await widget.store.loadEvidence(
+        inspection.id,
+      );
+      signaturesByInspection[inspection.id] = await widget.store.loadSignatures(
+        inspection.id,
+      );
+    }
     if (!mounted) return;
     setState(() {
       _properties = properties;
       _inspections = inspections;
+      _roomsByInspection = roomsByInspection;
+      _evidenceByInspection = evidenceByInspection;
+      _signaturesByInspection = signaturesByInspection;
       _selectedProperty ??= properties.firstOrNull;
       _selectedInspection ??= inspections
           .where((inspection) => inspection.propertyId == _selectedProperty?.id)
@@ -289,14 +215,14 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
     }
     setState(() {
       _selectedInspection = inspection;
-      _mobileTabIndex = 1;
+      _mobileTabIndex = 0;
     });
     await _reload();
   }
 
   Future<void> _openReportHistory() async {
     if (MediaQuery.sizeOf(context).width < 760) {
-      setState(() => _mobileTabIndex = 2);
+      setState(() => _mobileTabIndex = 1);
       return;
     }
     await showModalBottomSheet<void>(
@@ -337,6 +263,9 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
               selectedProperty: _selectedProperty,
               inspections: _inspections,
               selectedInspection: _selectedInspection,
+              roomsByInspection: _roomsByInspection,
+              evidenceByInspection: _evidenceByInspection,
+              signaturesByInspection: _signaturesByInspection,
               onCreateProperty: _createProperty,
               onOpenReportHistory: _openReportHistory,
               onSelectProperty: (property) => setState(() {
@@ -348,7 +277,7 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
               }),
               onSelectInspection: (inspection) => setState(() {
                 _selectedInspection = inspection;
-                _mobileTabIndex = 1;
+                _mobileTabIndex = 0;
               }),
               onStartInspection: _startInspection,
             );
@@ -376,17 +305,19 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
               final tabBody = switch (_mobileTabIndex) {
                 0 => ListView(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 104),
-                  children: [sidebar],
+                  children: [
+                    sidebar,
+                    if (_selectedProperty != null) ...[
+                      const SizedBox(height: 16),
+                      content,
+                    ],
+                  ],
                 ),
-                1 => ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 104),
-                  children: [content],
-                ),
-                2 => _ReportHistoryPanel(
+                1 => _ReportHistoryPanel(
                   strings: strings,
                   showClose: false,
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 104),
-                  onOpenInspection: () => setState(() => _mobileTabIndex = 1),
+                  onOpenInspection: () => setState(() => _mobileTabIndex = 0),
                 ),
                 _ => _MorePanel(
                   strings: strings,
@@ -457,11 +388,6 @@ class _FloatingMobileTabs extends StatelessWidget {
               icon: const Icon(Icons.apartment_outlined),
               selectedIcon: const Icon(Icons.apartment),
               label: strings.propertiesTab,
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.fact_check_outlined),
-              selectedIcon: const Icon(Icons.fact_check),
-              label: strings.inspectionTab,
             ),
             NavigationDestination(
               icon: const Icon(Icons.folder_copy_outlined),
@@ -727,92 +653,6 @@ class _GuideStepData {
   final String body;
 }
 
-class _WorkbenchBrandPanel extends StatelessWidget {
-  const _WorkbenchBrandPanel({
-    required this.strings,
-    required this.propertyCount,
-    required this.inspectionCount,
-    this.actionSlot,
-  });
-
-  final AppStrings strings;
-  final int propertyCount;
-  final int inspectionCount;
-  final Widget? actionSlot;
-
-  @override
-  Widget build(BuildContext context) {
-    return _PremiumSurface(
-      backgroundColor: const Color(0xFFF8F2E8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _HeroImage(asset: 'assets/images/workbench_hero.png'),
-          const SizedBox(height: 16),
-          Text(
-            strings.trustedOffline,
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 6),
-          Text(strings.freePlan, style: Theme.of(context).textTheme.bodySmall),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _TrustPill(icon: Icons.lock_outline, label: strings.localOnly),
-              _TrustPill(icon: Icons.fingerprint, label: strings.hashReady),
-              _TrustPill(
-                icon: Icons.picture_as_pdf_outlined,
-                label: strings.pdfEvidence,
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              _MetricBadge(
-                value: '$propertyCount',
-                label: strings.propertiesMetric,
-                icon: Icons.apartment,
-              ),
-              const SizedBox(width: 10),
-              _MetricBadge(
-                value: '$inspectionCount',
-                label: strings.inspectionsMetric,
-                icon: Icons.fact_check_outlined,
-              ),
-            ],
-          ),
-          if (actionSlot != null) ...[const SizedBox(height: 14), actionSlot!],
-          const SizedBox(height: 14),
-          _GuidePanel(
-            title: strings.mainFlowTitle,
-            subtitle: strings.homeFlowSubtitle,
-            steps: [
-              _GuideStepData(
-                icon: Icons.apartment_outlined,
-                title: strings.stepProperty,
-                body: strings.stepPropertyBody,
-              ),
-              _GuideStepData(
-                icon: Icons.fact_check_outlined,
-                title: strings.stepInspection,
-                body: strings.stepInspectionBody,
-              ),
-              _GuideStepData(
-                icon: Icons.picture_as_pdf_outlined,
-                title: strings.stepReport,
-                body: strings.stepReportBody,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _DashboardSidebar extends StatelessWidget {
   const _DashboardSidebar({
     required this.strings,
@@ -820,6 +660,9 @@ class _DashboardSidebar extends StatelessWidget {
     required this.selectedProperty,
     required this.inspections,
     required this.selectedInspection,
+    required this.roomsByInspection,
+    required this.evidenceByInspection,
+    required this.signaturesByInspection,
     required this.onCreateProperty,
     required this.onSelectProperty,
     required this.onSelectInspection,
@@ -832,6 +675,9 @@ class _DashboardSidebar extends StatelessWidget {
   final PropertyRecord? selectedProperty;
   final List<InspectionRecord> inspections;
   final InspectionRecord? selectedInspection;
+  final Map<String, List<RoomRecord>> roomsByInspection;
+  final Map<String, List<EvidenceItemRecord>> evidenceByInspection;
+  final Map<String, List<SignatureRecord>> signaturesByInspection;
   final VoidCallback onCreateProperty;
   final ValueChanged<PropertyRecord> onSelectProperty;
   final ValueChanged<InspectionRecord> onSelectInspection;
@@ -840,150 +686,509 @@ class _DashboardSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final propertyInspections = inspections
-        .where((item) => item.propertyId == selectedProperty?.id)
-        .toList();
-    final actionRow = Row(
-      children: [
-        Expanded(
-          child: FilledButton.icon(
-            onPressed: onCreateProperty,
-            icon: const Icon(Icons.add_home_work_outlined),
-            label: Text(strings.createProperty),
-          ),
-        ),
-        const SizedBox(width: 10),
-        IconButton.outlined(
-          tooltip: strings.reportHistory,
-          onPressed: onOpenReportHistory,
-          icon: const Icon(Icons.folder_copy_outlined),
-        ),
-      ],
-    );
+    final propertyInspections =
+        inspections
+            .where((item) => item.propertyId == selectedProperty?.id)
+            .toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final selectedSummary = selectedInspection == null
+        ? null
+        : InspectionProgressSummary.build(
+            inspection: selectedInspection!,
+            rooms: roomsByInspection[selectedInspection!.id] ?? const [],
+            evidenceItems:
+                evidenceByInspection[selectedInspection!.id] ?? const [],
+            signatures:
+                signaturesByInspection[selectedInspection!.id] ?? const [],
+          );
+    final primaryAction = selectedInspection == null
+        ? FilledButton.icon(
+            onPressed: selectedProperty == null
+                ? onCreateProperty
+                : () => onStartInspection(InspectionType.moveIn),
+            icon: const Icon(Icons.playlist_add_check_outlined),
+            label: Text(
+              selectedProperty == null
+                  ? strings.createProperty
+                  : strings.startFirstInspection,
+            ),
+          )
+        : FilledButton.icon(
+            onPressed: () => onSelectInspection(selectedInspection!),
+            icon: const Icon(Icons.play_arrow_outlined),
+            label: Text(strings.continueInspection),
+          );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _WorkbenchBrandPanel(
-          strings: strings,
-          propertyCount: properties.length,
-          inspectionCount: inspections.length,
-          actionSlot: actionRow,
+        _PremiumSurface(
+          backgroundColor: const Color(0xFFF8F2E8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _HeroImage(asset: 'assets/images/workbench_hero.png'),
+              const SizedBox(height: 16),
+              Text(
+                strings.dashboardTitle,
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                strings.dashboardSubtitle,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _TrustPill(
+                    icon: Icons.lock_outline,
+                    label: strings.localOnly,
+                  ),
+                  _TrustPill(icon: Icons.fingerprint, label: strings.hashReady),
+                  _TrustPill(
+                    icon: Icons.picture_as_pdf_outlined,
+                    label: strings.pdfEvidence,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              SizedBox(width: double.infinity, child: primaryAction),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  _MetricBadge(
+                    value: '${properties.length}',
+                    label: strings.propertiesMetric,
+                    icon: Icons.apartment,
+                  ),
+                  const SizedBox(width: 10),
+                  _MetricBadge(
+                    value: '${inspections.length}',
+                    label: strings.inspectionsMetric,
+                    icon: Icons.fact_check_outlined,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _DashboardStatusPanel(
+                strings: strings,
+                property: selectedProperty,
+                inspection: selectedInspection,
+                summary: selectedSummary,
+              ),
+            ],
+          ),
         ),
-        if (properties.isNotEmpty) const SizedBox(height: 16),
+        const SizedBox(height: 16),
+        _SectionHeader(
+          title: strings.propertiesTab,
+          subtitle: strings.activeProperty,
+          trailing: IconButton.outlined(
+            tooltip: strings.createProperty,
+            onPressed: onCreateProperty,
+            icon: const Icon(Icons.add_home_work_outlined),
+          ),
+        ),
+        const SizedBox(height: 8),
         ...properties.map(
           (property) => Padding(
             padding: const EdgeInsets.only(bottom: 10),
-            child: _PremiumSurface(
-              padding: const EdgeInsets.all(12),
-              backgroundColor: property.id == selectedProperty?.id
-                  ? _mist
-                  : _warmSurface,
-              borderColor: property.id == selectedProperty?.id
-                  ? const Color(0xFFC9DCD5)
-                  : _line,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(8),
-                onTap: () => onSelectProperty(property),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: _deepEmerald,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.apartment,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            property.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.titleSmall
-                                ?.copyWith(fontWeight: FontWeight.w800),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            property.address,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            child: _PropertyDashboardCard(
+              strings: strings,
+              property: property,
+              selected: property.id == selectedProperty?.id,
+              latestInspection: _latestInspectionForProperty(property.id),
+              latestSummary: _latestSummaryForProperty(property.id),
+              onTap: () => onSelectProperty(property),
             ),
           ),
         ),
         if (selectedProperty != null) ...[
-          const SizedBox(height: 6),
+          const SizedBox(height: 10),
           _SectionHeader(
             title: strings.startInspection,
-            subtitle: strings.evidenceWorkbench,
+            subtitle: strings.homeFlowSubtitle,
           ),
           const SizedBox(height: 8),
-          SegmentedButton<InspectionType>(
-            segments: [
-              ButtonSegment(
-                value: InspectionType.moveIn,
-                label: Text(strings.moveIn),
-                icon: const Icon(Icons.login),
-              ),
-              ButtonSegment(
-                value: InspectionType.moveOut,
-                label: Text(strings.moveOut),
-                icon: const Icon(Icons.logout),
-              ),
-              ButtonSegment(
-                value: InspectionType.general,
-                label: Text(strings.generalInspection),
-                icon: const Icon(Icons.fact_check_outlined),
-              ),
-            ],
-            selected: const {},
-            emptySelectionAllowed: true,
-            onSelectionChanged: (selection) {
-              if (selection.isNotEmpty) onStartInspection(selection.first);
-            },
+          _InspectionTypeCard(
+            icon: Icons.login,
+            title: strings.moveIn,
+            body: strings.moveInCardBody,
+            onTap: () => onStartInspection(InspectionType.moveIn),
+            emphasized: propertyInspections.isEmpty,
           ),
-          const SizedBox(height: 12),
-          ...propertyInspections.map(
-            (inspection) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: ListTile(
-                tileColor: inspection.id == selectedInspection?.id
-                    ? _mist
-                    : Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  side: const BorderSide(color: _line),
-                ),
-                leading: const Icon(Icons.description_outlined),
+          const SizedBox(height: 8),
+          _InspectionTypeCard(
+            icon: Icons.logout,
+            title: strings.moveOut,
+            body: strings.moveOutCardBody,
+            onTap: () => onStartInspection(InspectionType.moveOut),
+          ),
+          const SizedBox(height: 8),
+          _InspectionTypeCard(
+            icon: Icons.fact_check_outlined,
+            title: strings.generalInspection,
+            body: strings.generalCardBody,
+            onTap: () => onStartInspection(InspectionType.general),
+          ),
+          if (propertyInspections.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            _SectionHeader(
+              title: strings.recentInspection,
+              subtitle: strings.inspectionProgress,
+              trailing: IconButton.outlined(
+                tooltip: strings.reportHistory,
+                onPressed: onOpenReportHistory,
+                icon: const Icon(Icons.folder_copy_outlined),
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...propertyInspections.map(
+              (inspection) => _InspectionDashboardTile(
+                strings: strings,
+                inspection: inspection,
                 selected: inspection.id == selectedInspection?.id,
-                title: Text(_typeLabel(strings, inspection.type)),
-                subtitle: Text(
-                  MaterialLocalizations.of(
-                    context,
-                  ).formatMediumDate(inspection.createdAt.toLocal()),
+                summary: InspectionProgressSummary.build(
+                  inspection: inspection,
+                  rooms: roomsByInspection[inspection.id] ?? const [],
+                  evidenceItems:
+                      evidenceByInspection[inspection.id] ?? const [],
+                  signatures: signaturesByInspection[inspection.id] ?? const [],
                 ),
                 onTap: () => onSelectInspection(inspection),
               ),
             ),
-          ),
+          ],
         ],
       ],
+    );
+  }
+
+  InspectionRecord? _latestInspectionForProperty(String propertyId) {
+    final sorted =
+        inspections
+            .where((inspection) => inspection.propertyId == propertyId)
+            .toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return sorted.firstOrNull;
+  }
+
+  InspectionProgressSummary? _latestSummaryForProperty(String propertyId) {
+    final latest = _latestInspectionForProperty(propertyId);
+    if (latest == null) return null;
+    return InspectionProgressSummary.build(
+      inspection: latest,
+      rooms: roomsByInspection[latest.id] ?? const [],
+      evidenceItems: evidenceByInspection[latest.id] ?? const [],
+      signatures: signaturesByInspection[latest.id] ?? const [],
+    );
+  }
+}
+
+class _DashboardStatusPanel extends StatelessWidget {
+  const _DashboardStatusPanel({
+    required this.strings,
+    required this.property,
+    required this.inspection,
+    required this.summary,
+  });
+
+  final AppStrings strings;
+  final PropertyRecord? property;
+  final InspectionRecord? inspection;
+  final InspectionProgressSummary? summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = summary == null
+        ? strings.noRecentInspection
+        : summary!.canExport
+        ? strings.readyToExport
+        : summary!.evidenceCount == 0
+        ? strings.needsEvidence
+        : strings.needsSignature;
+    final progress = summary == null
+        ? '0%'
+        : '${(summary!.completionRatio * 100).round()}%';
+    return _PremiumSurface(
+      padding: const EdgeInsets.all(12),
+      backgroundColor: Colors.white,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            strings.activeProperty,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            property?.name ?? strings.noProperties,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _MetricBadge(
+                value: progress,
+                label: strings.evidenceCompleteness,
+                icon: Icons.timeline_outlined,
+              ),
+              const SizedBox(width: 10),
+              _MetricBadge(
+                value: inspection == null
+                    ? '--'
+                    : _typeLabel(strings, inspection!.type),
+                label: strings.recentInspection,
+                icon: Icons.fact_check_outlined,
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _StatusPill(label: status, emphasized: summary?.canExport ?? false),
+        ],
+      ),
+    );
+  }
+}
+
+class _PropertyDashboardCard extends StatelessWidget {
+  const _PropertyDashboardCard({
+    required this.strings,
+    required this.property,
+    required this.selected,
+    required this.latestInspection,
+    required this.latestSummary,
+    required this.onTap,
+  });
+
+  final AppStrings strings;
+  final PropertyRecord property;
+  final bool selected;
+  final InspectionRecord? latestInspection;
+  final InspectionProgressSummary? latestSummary;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = latestSummary == null
+        ? strings.noRecentInspection
+        : latestSummary!.canExport
+        ? strings.readyToExport
+        : latestSummary!.evidenceCount == 0
+        ? strings.needsEvidence
+        : strings.needsSignature;
+    return _PremiumSurface(
+      padding: EdgeInsets.zero,
+      backgroundColor: selected ? _mist : _warmSurface,
+      borderColor: selected ? const Color(0xFFC9DCD5) : _line,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: _deepEmerald,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.apartment, color: Colors.white),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      property.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      property.address.isEmpty
+                          ? strings.address
+                          : property.address,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 7),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        _StatusPill(
+                          label: latestInspection == null
+                              ? strings.noRecentInspection
+                              : _typeLabel(strings, latestInspection!.type),
+                        ),
+                        _StatusPill(
+                          label:
+                              '${latestSummary?.evidenceCount ?? 0} ${strings.evidence}',
+                        ),
+                        _StatusPill(label: status),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InspectionTypeCard extends StatelessWidget {
+  const _InspectionTypeCard({
+    required this.icon,
+    required this.title,
+    required this.body,
+    required this.onTap,
+    this.emphasized = false,
+  });
+
+  final IconData icon;
+  final String title;
+  final String body;
+  final VoidCallback onTap;
+  final bool emphasized;
+
+  @override
+  Widget build(BuildContext context) {
+    return _PremiumSurface(
+      padding: EdgeInsets.zero,
+      backgroundColor: emphasized ? _mist : Colors.white,
+      borderColor: emphasized ? const Color(0xFFC9DCD5) : _line,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: emphasized ? _deepEmerald : _mist,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  icon,
+                  color: emphasized ? Colors.white : _deepEmerald,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(body, style: Theme.of(context).textTheme.bodySmall),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: _mutedInk),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InspectionDashboardTile extends StatelessWidget {
+  const _InspectionDashboardTile({
+    required this.strings,
+    required this.inspection,
+    required this.summary,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final AppStrings strings;
+  final InspectionRecord inspection;
+  final InspectionProgressSummary summary;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final date = MaterialLocalizations.of(
+      context,
+    ).formatMediumDate(inspection.createdAt.toLocal());
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: _PremiumSurface(
+        padding: EdgeInsets.zero,
+        backgroundColor: selected ? _mist : Colors.white,
+        borderColor: selected ? const Color(0xFFC9DCD5) : _line,
+        child: ListTile(
+          onTap: onTap,
+          leading: const Icon(Icons.description_outlined),
+          title: Text(_typeLabel(strings, inspection.type)),
+          subtitle: Text(
+            '$date | ${summary.evidenceCount} ${strings.evidence} | ${summary.signatureCount} ${strings.signatures}',
+          ),
+          trailing: _StatusPill(
+            label: summary.canExport
+                ? strings.readyToExport
+                : strings.inProgress,
+            emphasized: summary.canExport,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({required this.label, this.emphasized = false});
+
+  final String label;
+  final bool emphasized;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: emphasized ? _deepEmerald : _mist,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: emphasized ? _deepEmerald : const Color(0xFFD5E1DC),
+        ),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: emphasized ? Colors.white : _deepEmerald,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
     );
   }
 }
@@ -1169,6 +1374,7 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
   RoomRecord? _selectedRoom;
   ReportExportResult? _lastReport;
   bool _busy = true;
+  bool _locationExplained = false;
 
   @override
   void initState() {
@@ -1195,6 +1401,12 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
     if (room == null) return;
     var pickedPhotos = const <_PickedEvidencePhoto>[];
     if (source != null) {
+      final proceed = await _showPermissionExplanation(
+        source == ImageSource.camera
+            ? _PermissionExplainTarget.camera
+            : _PermissionExplainTarget.gallery,
+      );
+      if (!proceed) return;
       pickedPhotos = await _pickEvidencePhotos(source);
       if (pickedPhotos.isEmpty) {
         return;
@@ -1215,6 +1427,13 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
     Position? position;
     if (widget.captureLocation) {
       try {
+        if (!_locationExplained) {
+          _locationExplained = true;
+          final proceed = await _showPermissionExplanation(
+            _PermissionExplainTarget.location,
+          );
+          if (!proceed) return;
+        }
         position = await _currentPosition().timeout(
           const Duration(seconds: 2),
           onTimeout: () => null,
@@ -1245,6 +1464,65 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
       await widget.store.saveEvidence(evidence);
     }
     await _load();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(widget.strings.evidenceSaved(photosToSave.length)),
+      ),
+    );
+  }
+
+  Future<bool> _showPermissionExplanation(
+    _PermissionExplainTarget target,
+  ) async {
+    final (title, body, icon) = switch (target) {
+      _PermissionExplainTarget.camera => (
+        widget.strings.cameraPermissionTitle,
+        widget.strings.cameraPermissionBody,
+        Icons.photo_camera_outlined,
+      ),
+      _PermissionExplainTarget.gallery => (
+        widget.strings.galleryPermissionTitle,
+        widget.strings.galleryPermissionBody,
+        Icons.photo_library_outlined,
+      ),
+      _PermissionExplainTarget.location => (
+        widget.strings.locationPermissionTitle,
+        widget.strings.locationPermissionBody,
+        Icons.location_on_outlined,
+      ),
+    };
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 6, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _EmptyActionPanel(
+                icon: icon,
+                title: title,
+                subtitle: body,
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: Text(widget.strings.cancel),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: Text(widget.strings.continueAction),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    return result ?? false;
   }
 
   Future<List<_PickedEvidencePhoto>> _pickEvidencePhotos(
@@ -1325,6 +1603,10 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
     if (signature == null) return;
     await widget.store.saveSignature(signature);
     await _load();
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(widget.strings.signatureSaved)));
   }
 
   Future<void> _exportReport() async {
@@ -1347,7 +1629,7 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
       setState(() => _lastReport = result);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(widget.strings.reportReady)));
+      ).showSnackBar(SnackBar(content: Text(widget.strings.reportShareReady)));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -1366,14 +1648,21 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
     final roomEvidence = _evidence
         .where((item) => item.roomId == _selectedRoom?.id)
         .toList();
-    final issueCount = _evidence
-        .where((item) => item.severity != EvidenceSeverity.good)
-        .length;
-    final nextStepMessage = _evidence.isEmpty
-        ? widget.strings.nextStepEvidence
-        : _signatures.isEmpty
-        ? widget.strings.nextStepSignature
-        : widget.strings.nextStepReport;
+    final summary = InspectionProgressSummary.build(
+      inspection: widget.inspection,
+      rooms: _rooms,
+      evidenceItems: _evidence,
+      signatures: _signatures,
+    );
+    final roomStatuses = RoomChecklistStatus.build(
+      rooms: _rooms,
+      evidenceItems: _evidence,
+    );
+    final nextStepMessage = switch (summary.nextStepKind) {
+      InspectionNextStep.addEvidence => widget.strings.nextStepEvidence,
+      InspectionNextStep.addSignature => widget.strings.nextStepSignature,
+      InspectionNextStep.exportReport => widget.strings.nextStepReport,
+    };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1409,7 +1698,7 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
                   ),
                   const SizedBox(width: 10),
                   _MetricBadge(
-                    value: '$issueCount',
+                    value: '${summary.issueCount}',
                     label: widget.strings.issue,
                     icon: Icons.report_problem_outlined,
                   ),
@@ -1461,6 +1750,14 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
                   ],
                 ),
               ),
+              const SizedBox(height: 10),
+              LinearProgressIndicator(
+                value: summary.completionRatio.clamp(0, 1),
+                minHeight: 7,
+                borderRadius: BorderRadius.circular(8),
+                backgroundColor: Colors.white,
+                color: _deepEmerald,
+              ),
             ],
           ),
         ),
@@ -1488,26 +1785,21 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
         ),
         const SizedBox(height: 18),
         _SectionHeader(
-          title: widget.strings.rooms,
-          subtitle: widget.strings.captureReady,
+          title: widget.strings.roomChecklist,
+          subtitle: widget.strings.roomChecklistSubtitle,
         ),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: _rooms
-              .map(
-                (room) => ChoiceChip(
-                  label: Text(room.name),
-                  selected: room.id == _selectedRoom?.id,
-                  onSelected: (_) => setState(() => _selectedRoom = room),
-                ),
-              )
-              .toList(),
+        ...roomStatuses.map(
+          (status) => _RoomChecklistCard(
+            strings: widget.strings,
+            status: status,
+            selected: status.room.id == _selectedRoom?.id,
+            onTap: () => setState(() => _selectedRoom = status.room),
+          ),
         ),
         const SizedBox(height: 18),
         _SectionHeader(
-          title: widget.strings.evidence,
+          title: widget.strings.selectedRoomEvidence,
           subtitle: widget.strings.hashReady,
           trailing: Wrap(
             spacing: 8,
@@ -1590,12 +1882,14 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
           title: widget.strings.finalReportTitle,
           subtitle: _evidence.isEmpty
               ? widget.strings.finalReportNeedsEvidence
+              : _signatures.isEmpty
+              ? widget.strings.needsSignature
               : widget.strings.finalReportSubtitle,
         ),
         const SizedBox(height: 10),
         _PremiumSurface(
-          backgroundColor: _evidence.isEmpty ? _warmSurface : _mist,
-          borderColor: _evidence.isEmpty ? _line : const Color(0xFFC9DCD5),
+          backgroundColor: summary.canExport ? _mist : _warmSurface,
+          borderColor: summary.canExport ? const Color(0xFFC9DCD5) : _line,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1628,7 +1922,7 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: _evidence.isEmpty ? null : _exportReport,
+                  onPressed: summary.canExport ? _exportReport : null,
                   icon: const Icon(Icons.picture_as_pdf_outlined),
                   label: Text(widget.strings.generateReport),
                 ),
@@ -1673,6 +1967,111 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
     );
   }
 }
+
+class _RoomChecklistCard extends StatelessWidget {
+  const _RoomChecklistCard({
+    required this.strings,
+    required this.status,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final AppStrings strings;
+  final RoomChecklistStatus status;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final stateLabel = status.isComplete
+        ? strings.completed
+        : status.evidenceCount == 0
+        ? strings.notStarted
+        : strings.inProgress;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: _PremiumSurface(
+        padding: EdgeInsets.zero,
+        backgroundColor: selected ? _mist : Colors.white,
+        borderColor: selected ? const Color(0xFFC9DCD5) : _line,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: status.isComplete ? _deepEmerald : _mist,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    status.isComplete
+                        ? Icons.check_circle_outline
+                        : Icons.meeting_room_outlined,
+                    color: status.isComplete ? Colors.white : _deepEmerald,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        status.room.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          _StatusPill(
+                            label:
+                                '${status.evidenceCount} ${strings.evidence}',
+                          ),
+                          _StatusPill(
+                            label: '${status.issueCount} ${strings.issue}',
+                          ),
+                          _StatusPill(
+                            label: '${status.photoCount} ${strings.takePhoto}',
+                          ),
+                          _StatusPill(
+                            label: status.hashReady
+                                ? strings.hashCaptured
+                                : strings.hashMissing,
+                            emphasized: status.hashReady,
+                          ),
+                          _StatusPill(
+                            label: status.locationReady
+                                ? strings.locationCaptured
+                                : strings.locationMissing,
+                            emphasized: status.locationReady,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _StatusPill(label: stateLabel, emphasized: status.isComplete),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+enum _PermissionExplainTarget { camera, gallery, location }
 
 class _EmptyActionPanel extends StatelessWidget {
   const _EmptyActionPanel({
@@ -1789,6 +2188,7 @@ class _ReportHistoryPanel extends StatefulWidget {
 
 class _ReportHistoryPanelState extends State<_ReportHistoryPanel> {
   late final Future<List<ReportArchiveEntry>> _reportsFuture = _loadReports();
+  ReportArchiveFilter _filter = ReportArchiveFilter.all;
 
   Future<List<ReportArchiveEntry>> _loadReports() async {
     final directory = await ReportExporter.reportsDirectory();
@@ -1801,6 +2201,9 @@ class _ReportHistoryPanelState extends State<_ReportHistoryPanel> {
       future: _reportsFuture,
       builder: (context, snapshot) {
         final reports = snapshot.data ?? const <ReportArchiveEntry>[];
+        final filteredReports = reports
+            .where((report) => _filter.matches(report.inspectionTypeKey))
+            .toList();
         return ListView(
           controller: widget.scrollController,
           padding: widget.padding,
@@ -1822,6 +2225,20 @@ class _ReportHistoryPanelState extends State<_ReportHistoryPanel> {
               height: 150,
             ),
             const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: ReportArchiveFilter.values
+                  .map(
+                    (filter) => ChoiceChip(
+                      label: Text(_reportFilterLabel(widget.strings, filter)),
+                      selected: filter == _filter,
+                      onSelected: (_) => setState(() => _filter = filter),
+                    ),
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: 14),
             if (snapshot.connectionState == ConnectionState.waiting)
               const Center(child: CircularProgressIndicator())
             else if (reports.isEmpty)
@@ -1838,8 +2255,22 @@ class _ReportHistoryPanelState extends State<_ReportHistoryPanel> {
                     ),
                 ],
               )
+            else if (filteredReports.isEmpty)
+              _EmptyActionPanel(
+                icon: Icons.filter_list_off_outlined,
+                title: widget.strings.noReportsForFilter,
+                subtitle: widget.strings.archiveSubtitle,
+                actions: [
+                  OutlinedButton.icon(
+                    onPressed: () =>
+                        setState(() => _filter = ReportArchiveFilter.all),
+                    icon: const Icon(Icons.clear_all_outlined),
+                    label: Text(widget.strings.reportFilterAll),
+                  ),
+                ],
+              )
             else
-              ...reports.map(
+              ...filteredReports.map(
                 (report) => Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: Builder(
@@ -2039,6 +2470,9 @@ class _EvidenceCard extends StatelessWidget {
         : _deepEmerald;
     final photoFile = item.photoPath == null ? null : File(item.photoPath!);
     final hasPhotoFile = photoFile?.existsSync() ?? false;
+    final timestamp =
+        '${MaterialLocalizations.of(context).formatMediumDate(item.capturedAt.toLocal())} '
+        '${TimeOfDay.fromDateTime(item.capturedAt.toLocal()).format(context)}';
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: _PremiumSurface(
@@ -2105,22 +2539,34 @@ class _EvidenceCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    '${strings.captureReady} | ${item.capturedAt.toLocal()}',
-                    style: Theme.of(context).textTheme.bodySmall,
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      _StatusPill(label: '${strings.timestamp}: $timestamp'),
+                      _StatusPill(
+                        label: hasPhotoFile
+                            ? strings.photoAvailable
+                            : item.photoPath == null
+                            ? strings.saveNote
+                            : strings.photoMissing,
+                        emphasized: hasPhotoFile,
+                      ),
+                      _StatusPill(
+                        label: item.photoHash == null
+                            ? strings.hashMissing
+                            : 'SHA ${_shortHash(item.photoHash!)}',
+                        emphasized: item.photoHash != null,
+                      ),
+                      _StatusPill(
+                        label: item.latitude == null || item.longitude == null
+                            ? strings.locationMissing
+                            : '${item.latitude!.toStringAsFixed(5)}, ${item.longitude!.toStringAsFixed(5)}',
+                        emphasized:
+                            item.latitude != null && item.longitude != null,
+                      ),
+                    ],
                   ),
-                  if (item.photoHash != null)
-                    Text(
-                      hasPhotoFile
-                          ? 'SHA-256 ${item.photoHash!.substring(0, 12)}...'
-                          : strings.photoFileMissing,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  if (item.latitude != null && item.longitude != null)
-                    Text(
-                      '${item.latitude!.toStringAsFixed(5)}, ${item.longitude!.toStringAsFixed(5)}',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
                 ],
               ),
             ),
@@ -2568,6 +3014,15 @@ String _typeLabel(AppStrings strings, InspectionType type) {
     InspectionType.moveIn => strings.moveIn,
     InspectionType.moveOut => strings.moveOut,
     InspectionType.general => strings.generalInspection,
+  };
+}
+
+String _reportFilterLabel(AppStrings strings, ReportArchiveFilter filter) {
+  return switch (filter) {
+    ReportArchiveFilter.all => strings.reportFilterAll,
+    ReportArchiveFilter.moveIn => strings.reportFilterMoveIn,
+    ReportArchiveFilter.moveOut => strings.reportFilterMoveOut,
+    ReportArchiveFilter.general => strings.reportFilterGeneral,
   };
 }
 

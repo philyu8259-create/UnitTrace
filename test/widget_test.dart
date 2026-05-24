@@ -20,7 +20,12 @@ class EmptyCameraPicker implements UnitTraceImagePicker {
 }
 
 Future<void> tapCreateProperty(WidgetTester tester) async {
-  final button = find.byTooltip('Create property').first;
+  final button = find
+      .descendant(
+        of: find.byType(AppBar),
+        matching: find.byTooltip('Create property'),
+      )
+      .first;
   await tester.ensureVisible(button);
   await tester.tap(button);
   await tester.pumpAndSettle();
@@ -51,7 +56,7 @@ void main() {
     );
     await tester.tap(find.text('Save property'));
     await tester.pumpAndSettle();
-    expect(find.text('Oak Street Apt'), findsOneWidget);
+    expect(find.text('Oak Street Apt'), findsAtLeastNWidgets(1));
     expect(find.text('Start inspection'), findsOneWidget);
   });
 
@@ -150,17 +155,23 @@ void main() {
       await tester.tap(find.text('Save property'));
       await tester.pumpAndSettle();
 
-      await tester.tapAt(const Offset(170, 900));
-      await tester.pump(const Duration(milliseconds: 500));
-      expect(find.text('No inspection workspace yet'), findsOneWidget);
+      expect(find.text('Start first inspection'), findsOneWidget);
       expect(find.textContaining('Oak Street Apt'), findsWidgets);
 
-      await tester.tap(find.text('Move-in'));
-      await tester.pumpAndSettle();
+      await tester.tap(
+        find.widgetWithText(FilledButton, 'Start first inspection'),
+      );
+      await tester.pump(const Duration(milliseconds: 500));
       for (var i = 0; i < 10 && (await store.loadInspections()).isEmpty; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
+      expect(await store.loadInspections(), isNotEmpty);
 
+      await tester.scrollUntilVisible(
+        find.text('Generate PDF report'),
+        500,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.text('Generate PDF report'), findsOneWidget);
       expect(find.text('Entry'), findsOneWidget);
     },
@@ -203,6 +214,9 @@ void main() {
     final cameraButton = find.byTooltip('Camera').first;
     await tester.ensureVisible(cameraButton);
     await tester.tap(cameraButton);
+    await tester.pumpAndSettle();
+    expect(find.text('Allow camera for evidence photos'), findsOneWidget);
+    await tester.tap(find.text('Continue'));
     await tester.pump();
 
     expect(
@@ -238,7 +252,7 @@ void main() {
     );
     await tester.tap(find.text('Save property'));
     await tester.pumpAndSettle();
-    expect(find.text('Pine Street Apt'), findsOneWidget);
+    expect(find.text('Pine Street Apt'), findsAtLeastNWidgets(1));
 
     await tapCreateProperty(tester);
     expect(find.text('Beta property limit reached'), findsOneWidget);

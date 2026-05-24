@@ -26,6 +26,23 @@ class AppStrings {
   String get propertyName => isChinese ? '房屋名称' : 'Property name';
   String get address => isChinese ? '地址' : 'Address';
   String get startInspection => isChinese ? '开始检查' : 'Start inspection';
+  String get continueInspection => isChinese ? '继续检查' : 'Continue inspection';
+  String get startFirstInspection =>
+      isChinese ? '开始第一份检查' : 'Start first inspection';
+  String get dashboardTitle => isChinese ? '今日证据工作台' : 'Evidence dashboard';
+  String get dashboardSubtitle => isChinese
+      ? '按房源、检查类型、房间清单完成证据包。'
+      : 'Move from property to inspection type, room checklist, signatures, and export.';
+  String get activeProperty => isChinese ? '当前房源' : 'Active property';
+  String get recentInspection => isChinese ? '最近检查' : 'Recent inspection';
+  String get noRecentInspection => isChinese ? '暂无检查' : 'No inspections yet';
+  String get inspectionProgress => isChinese ? '检查进度' : 'Inspection progress';
+  String get evidenceCompleteness =>
+      isChinese ? '证据完整度' : 'Evidence completeness';
+  String get roomsComplete => isChinese ? '房间完成' : 'Rooms complete';
+  String get readyToExport => isChinese ? '可以生成报告' : 'Ready to export';
+  String get needsEvidence => isChinese ? '还缺证据' : 'Needs evidence';
+  String get needsSignature => isChinese ? '建议补签名' : 'Signature recommended';
   String get noActiveInspectionTitle =>
       isChinese ? '还没有检查工作区' : 'No inspection workspace yet';
   String noActiveInspectionSubtitle(String propertyName) => isChinese
@@ -34,6 +51,15 @@ class AppStrings {
   String get moveIn => isChinese ? '入住检查' : 'Move-in';
   String get moveOut => isChinese ? '退租检查' : 'Move-out';
   String get generalInspection => isChinese ? '普通检查' : 'General';
+  String get moveInCardBody => isChinese
+      ? '入住前逐房间记录墙面、地板、电器和钥匙交接状态。'
+      : 'Document walls, floors, appliances, and handoff condition before move-in.';
+  String get moveOutCardBody => isChinese
+      ? '退租时整理扣押金争议需要的照片、备注和签名。'
+      : 'Collect photos, notes, and signatures for move-out deposit disputes.';
+  String get generalCardBody => isChinese
+      ? '用于维修、短租周转或临时房况记录。'
+      : 'Use for maintenance, short-stay turnover, or routine condition records.';
   String get noProperties => isChinese
       ? '还没有房屋。先创建一个房屋，再生成证据报告。'
       : 'No properties yet. Create a property to start an evidence report.';
@@ -78,6 +104,25 @@ class AppStrings {
       ? '选择房间，拍照或写备注，签名后导出报告。'
       : 'Choose a room, add photos or notes, sign, then export the report.';
   String get nextStep => isChinese ? '下一步' : 'Next step';
+  String get roomChecklist => isChinese ? '房间清单' : 'Room checklist';
+  String get roomChecklistSubtitle => isChinese
+      ? '每个房间都能看到照片、问题、哈希和位置状态。'
+      : 'See photo, issue, hash, and location status for every room.';
+  String get roomDetail => isChinese ? '当前房间' : 'Current room';
+  String get selectedRoomEvidence =>
+      isChinese ? '当前房间证据' : 'Selected room evidence';
+  String get completed => isChinese ? '已完成' : 'Complete';
+  String get notStarted => isChinese ? '未开始' : 'Not started';
+  String get inProgress => isChinese ? '进行中' : 'In progress';
+  String get hashStatus => isChinese ? '哈希状态' : 'Hash status';
+  String get locationStatus => isChinese ? '位置状态' : 'Location status';
+  String get timestamp => isChinese ? '时间' : 'Timestamp';
+  String get locationCaptured => isChinese ? '已记录位置' : 'Location captured';
+  String get locationMissing => isChinese ? '未记录位置' : 'No location';
+  String get hashCaptured => isChinese ? '哈希已生成' : 'Hash ready';
+  String get hashMissing => isChinese ? '无照片哈希' : 'No photo hash';
+  String get photoAvailable => isChinese ? '照片可用' : 'Photo available';
+  String get photoMissing => isChinese ? '照片缺失' : 'Photo missing';
   String get nextStepEvidence => isChinese
       ? '先在下方选择房间，再拍照、相册多选或添加文字备注。'
       : 'Choose a room below, then take photos, pick gallery photos, or add notes.';
@@ -99,8 +144,27 @@ class AppStrings {
   String get description => isChinese ? '问题描述或备注' : 'Description or note';
   String get saveNote => isChinese ? '保存备注' : 'Save note';
   String get saveEvidence => isChinese ? '保存证据' : 'Save evidence';
+  String evidenceSaved(int count) => isChinese
+      ? '已保存 $count 条证据'
+      : 'Saved $count evidence item${count == 1 ? '' : 's'}';
   String get takePhoto => isChinese ? '拍照' : 'Camera';
   String get choosePhoto => isChinese ? '相册' : 'Gallery';
+  String get cameraPermissionTitle =>
+      isChinese ? '允许相机用于证据拍照' : 'Allow camera for evidence photos';
+  String get cameraPermissionBody => isChinese
+      ? '照片会复制到本机并生成哈希，不会上传。系统稍后可能询问相机权限。'
+      : 'Photos are copied locally and hashed. Nothing uploads. The system may ask for camera access next.';
+  String get galleryPermissionTitle =>
+      isChinese ? '从相册选择多张证据照片' : 'Choose evidence photos from gallery';
+  String get galleryPermissionBody => isChinese
+      ? '可以一次选择多张照片，每张都会单独生成 SHA-256。'
+      : 'You can choose multiple photos; each receives its own SHA-256 hash.';
+  String get locationPermissionTitle =>
+      isChinese ? '记录证据位置' : 'Record evidence location';
+  String get locationPermissionBody => isChinese
+      ? '如果授权，报告会显示经纬度；拒绝后仍可保存照片和备注。'
+      : 'If allowed, coordinates appear in the report. If denied, photos and notes still save.';
+  String get continueAction => isChinese ? '继续' : 'Continue';
   String get noPhotoCaptured => isChinese
       ? '没有拍到照片。请确认相机可用并已授权。'
       : 'No photo captured. Confirm camera access is available and allowed.';
@@ -124,8 +188,11 @@ class AppStrings {
   String get landlord => isChinese ? '房东' : 'Landlord';
   String get clear => isChinese ? '清除' : 'Clear';
   String get saveSignature => isChinese ? '保存签名' : 'Save signature';
+  String get signatureSaved => isChinese ? '签名已保存' : 'Signature saved';
   String get generateReport => isChinese ? '生成 PDF 证据包' : 'Generate PDF report';
   String get shareReport => isChinese ? '分享报告' : 'Share report';
+  String get reportShareReady =>
+      isChinese ? 'PDF 已生成，分享面板已打开' : 'PDF generated and share sheet opened';
   String get evidence => isChinese ? '证据' : 'Evidence';
   String get rooms => isChinese ? '房间' : 'Rooms';
   String get trustedOffline => isChinese ? '离线可信证据包' : 'Trusted offline report';
@@ -161,6 +228,12 @@ class AppStrings {
       isChinese ? '上架前配置链接' : 'Link to be configured before release';
   String get disclaimerTitle => isChinese ? '免责声明' : 'Disclaimer';
   String get reportHistory => isChinese ? '报告历史' : 'Report history';
+  String get reportFilterAll => isChinese ? '全部' : 'All';
+  String get reportFilterMoveIn => isChinese ? '入住' : 'Move-in';
+  String get reportFilterMoveOut => isChinese ? '退租' : 'Move-out';
+  String get reportFilterGeneral => isChinese ? '普通' : 'General';
+  String get noReportsForFilter =>
+      isChinese ? '当前筛选下没有报告。' : 'No reports match this filter.';
   String get noReports => isChinese
       ? '还没有导出的报告。生成 PDF 后会出现在这里。'
       : 'No exported reports yet. Generated PDFs will appear here.';
