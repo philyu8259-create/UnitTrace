@@ -7,6 +7,7 @@ import 'package:unittrace/main.dart';
 import 'package:unittrace/src/data/in_memory_unittrace_store.dart';
 import 'package:unittrace/src/domain/entities.dart';
 import 'package:unittrace/src/services/app_directories.dart';
+import 'package:unittrace/src/services/pro_entitlement.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -48,6 +49,7 @@ void main() {
         store: await _seedStore(),
         initialLocale: const Locale('en'),
         captureLocation: false,
+        proController: _testProController(),
       ),
     );
     await tester.pumpAndSettle();
@@ -69,6 +71,7 @@ void main() {
         store: await _seedStore(),
         initialLocale: const Locale('en'),
         captureLocation: false,
+        proController: _testProController(),
       ),
     );
     await tester.pumpAndSettle();
@@ -98,6 +101,7 @@ void main() {
         store: await _seedStore(),
         initialLocale: const Locale('en'),
         captureLocation: false,
+        proController: _testProController(),
       ),
     );
     await tester.pumpAndSettle();
@@ -121,6 +125,24 @@ void main() {
       matchesGoldenFile('goldens/report_history.png'),
     );
   });
+}
+
+ProEntitlementController _testProController() {
+  return ProEntitlementController(
+    store: MemoryProEntitlementStore(),
+    purchaseClient: _GoldenPurchaseClient(),
+    clock: () => DateTime.utc(2026, 5, 24, 12),
+  );
+}
+
+class _GoldenPurchaseClient implements ProPurchaseClient {
+  @override
+  Future<ProPurchaseResult> buyLifetime() async =>
+      ProPurchaseResult.unavailable;
+
+  @override
+  Future<ProPurchaseResult> restorePurchases() async =>
+      ProPurchaseResult.unavailable;
 }
 
 Future<void> _pumpUntilReportHistoryReady(WidgetTester tester) async {

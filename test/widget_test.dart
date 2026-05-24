@@ -4,10 +4,12 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:unittrace/main.dart';
 import 'package:unittrace/src/data/in_memory_unittrace_store.dart';
 import 'package:unittrace/src/domain/entities.dart';
 import 'package:unittrace/src/services/app_directories.dart';
+import 'package:unittrace/src/services/pro_entitlement.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
@@ -52,6 +54,38 @@ class RecordingUrlLauncher extends UrlLauncherPlatform {
     launchedUrls.add(url);
     return true;
   }
+}
+
+class FakeProPurchaseClient implements ProPurchaseClient {
+  FakeProPurchaseClient({
+    this.lifetimeResult = ProPurchaseResult.unavailable,
+    this.restoreResult = ProPurchaseResult.unavailable,
+  });
+
+  final ProPurchaseResult lifetimeResult;
+  final ProPurchaseResult restoreResult;
+
+  @override
+  Future<ProPurchaseResult> buyLifetime() async => lifetimeResult;
+
+  @override
+  Future<ProPurchaseResult> restorePurchases() async => restoreResult;
+}
+
+ProEntitlementController testProController({
+  DateTime? now,
+  ProPurchaseResult lifetimeResult = ProPurchaseResult.unavailable,
+  ProPurchaseResult restoreResult = ProPurchaseResult.unavailable,
+  ProEntitlementStore? store,
+}) {
+  return ProEntitlementController(
+    store: store ?? MemoryProEntitlementStore(),
+    purchaseClient: FakeProPurchaseClient(
+      lifetimeResult: lifetimeResult,
+      restoreResult: restoreResult,
+    ),
+    clock: () => now ?? DateTime.utc(2026, 5, 24, 12),
+  );
 }
 
 final Uint8List testSignaturePngBytes = Uint8List.fromList(const [
@@ -187,6 +221,10 @@ Future<void> drawTestSignature(WidgetTester tester) async {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   testWidgets('creates a property from the empty dashboard', (tester) async {
     await tester.pumpWidget(
       UnitTraceApp(
@@ -257,11 +295,33 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('More'));
+    await tester.tap(find.byIcon(Icons.more_horiz));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Privacy Policy').last);
+    await tester.scrollUntilVisible(
+      find.widgetWithText(ListTile, 'Privacy Policy'),
+      160,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Support').last);
+    await tester.tap(find.widgetWithText(ListTile, 'Privacy Policy'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.widgetWithText(ListTile, 'Support'),
+      160,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ListTile, 'Support'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.widgetWithText(ListTile, 'End User License Agreement'),
+      220,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.widgetWithText(ListTile, 'End User License Agreement'),
+    );
     await tester.pumpAndSettle();
 
     expect(
@@ -269,6 +329,7 @@ void main() {
       containsAllInOrder([
         'https://philyu8259-create.github.io/UnitTrace/privacy-policy-en.html',
         'https://philyu8259-create.github.io/UnitTrace/support-en.html',
+        'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/',
       ]),
     );
   });
@@ -295,11 +356,31 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('更多'));
+    await tester.tap(find.byIcon(Icons.more_horiz));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('隐私政策').last);
+    await tester.scrollUntilVisible(
+      find.widgetWithText(ListTile, '隐私政策'),
+      160,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('支持与反馈').last);
+    await tester.tap(find.widgetWithText(ListTile, '隐私政策'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.widgetWithText(ListTile, '支持与反馈'),
+      160,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ListTile, '支持与反馈'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.widgetWithText(ListTile, '最终用户许可协议'),
+      220,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ListTile, '最终用户许可协议'));
     await tester.pumpAndSettle();
 
     expect(
@@ -307,6 +388,229 @@ void main() {
       containsAllInOrder([
         'https://philyu8259-create.github.io/UnitTrace/privacy-policy-zh.html',
         'https://philyu8259-create.github.io/UnitTrace/support-zh.html',
+        'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/',
+      ]),
+    );
+  });
+
+  testWidgets('More page keeps Chinese and English fixed copy separated', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(440, 956);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      UnitTraceApp(
+        store: InMemoryUnitTraceStore(),
+        initialLocale: const Locale('zh', 'Hans'),
+        captureLocation: false,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.more_horiz));
+    await tester.pumpAndSettle();
+
+    expect(find.text('关于与合规'), findsOneWidget);
+    expect(find.text('一次性购买 \$24.99'), findsOneWidget);
+    expect(find.text('About & Compliance'), findsNothing);
+    expect(find.text('Local Data'), findsNothing);
+    expect(find.text('Buy once \$24.99'), findsNothing);
+    await tester.scrollUntilVisible(
+      find.text('本地数据说明'),
+      180,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(find.text('本地数据说明'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+
+    await tester.pumpWidget(
+      UnitTraceApp(
+        store: InMemoryUnitTraceStore(),
+        initialLocale: const Locale('en'),
+        captureLocation: false,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.more_horiz));
+    await tester.pumpAndSettle();
+
+    expect(find.text('About & Compliance'), findsOneWidget);
+    expect(find.text('Buy once \$24.99'), findsOneWidget);
+    expect(find.text('关于与合规'), findsNothing);
+    expect(find.text('本地数据说明'), findsNothing);
+    expect(find.text('一次性购买 \$24.99'), findsNothing);
+    await tester.scrollUntilVisible(
+      find.text('Local Data'),
+      180,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(find.text('Local Data'), findsOneWidget);
+  });
+
+  testWidgets('Restore purchases shows localized unavailable feedback', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(440, 956);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      UnitTraceApp(
+        store: InMemoryUnitTraceStore(),
+        initialLocale: const Locale('en'),
+        captureLocation: false,
+        proController: testProController(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.more_horiz));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Restore Purchases'),
+      180,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.text('Restore Purchases').last);
+    await tester.pump();
+
+    expect(find.text('No purchases to restore'), findsOneWidget);
+  });
+
+  testWidgets('expired trial keeps existing data readable and gates edits', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(440, 956);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final now = DateTime.utc(2026, 5, 24, 12);
+    final entitlementStore = MemoryProEntitlementStore();
+    await entitlementStore.save(
+      ProEntitlementState(
+        now: now,
+        trialStartedAt: now.subtract(const Duration(days: 4)),
+        trialEndsAt: now.subtract(const Duration(days: 1)),
+      ),
+    );
+    final store = InMemoryUnitTraceStore();
+    await store.saveProperty(
+      PropertyRecord(
+        id: 'property-1',
+        name: 'Readable Apt',
+        address: '10 Market Street',
+        createdAt: now,
+      ),
+    );
+
+    await tester.pumpWidget(
+      UnitTraceApp(
+        store: store,
+        initialLocale: const Locale('en'),
+        captureLocation: false,
+        proController: testProController(now: now, store: entitlementStore),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Readable Apt'), findsOneWidget);
+    await tapCreateProperty(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Trial ended'), findsWidgets);
+    expect(find.text('Buy once \$24.99'), findsWidgets);
+  });
+
+  testWidgets('lifetime purchase unlocks Pro from paywall', (tester) async {
+    tester.view.physicalSize = const Size(440, 956);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final now = DateTime.utc(2026, 5, 24, 12);
+    final entitlementStore = MemoryProEntitlementStore();
+    await entitlementStore.save(
+      ProEntitlementState(
+        now: now,
+        trialStartedAt: now.subtract(const Duration(days: 4)),
+        trialEndsAt: now.subtract(const Duration(days: 1)),
+      ),
+    );
+    final controller = testProController(
+      now: now,
+      store: entitlementStore,
+      lifetimeResult: ProPurchaseResult.success,
+    );
+
+    await tester.pumpWidget(
+      UnitTraceApp(
+        store: InMemoryUnitTraceStore(),
+        initialLocale: const Locale('en'),
+        captureLocation: false,
+        proController: controller,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.more_horiz));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Buy once \$24.99'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ListTile, 'Buy once \$24.99'));
+    await tester.pumpAndSettle();
+
+    expect(controller.state.isLifetimeActive, isTrue);
+    expect(find.text('Pro unlocked'), findsWidgets);
+  });
+
+  testWidgets('Pro paywall exposes EULA and privacy links', (tester) async {
+    tester.view.physicalSize = const Size(440, 956);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final previousLauncher = UrlLauncherPlatform.instance;
+    final launcher = RecordingUrlLauncher();
+    UrlLauncherPlatform.instance = launcher;
+    addTearDown(() => UrlLauncherPlatform.instance = previousLauncher);
+
+    await tester.pumpWidget(
+      UnitTraceApp(
+        store: InMemoryUnitTraceStore(),
+        initialLocale: const Locale('en'),
+        captureLocation: false,
+        proController: testProController(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.more_horiz));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Buy once \$24.99'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('By purchasing, you agree to the'), findsOneWidget);
+    expect(
+      find.widgetWithText(TextButton, 'End User License Agreement'),
+      findsOneWidget,
+    );
+    expect(find.widgetWithText(TextButton, 'Privacy Policy'), findsOneWidget);
+
+    await tester.tap(
+      find.widgetWithText(TextButton, 'End User License Agreement'),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextButton, 'Privacy Policy'));
+    await tester.pumpAndSettle();
+
+    expect(
+      launcher.launchedUrls,
+      containsAllInOrder([
+        'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/',
+        'https://philyu8259-create.github.io/UnitTrace/privacy-policy-en.html',
       ]),
     );
   });
@@ -637,7 +941,7 @@ void main() {
     );
   });
 
-  testWidgets('beta allows two properties and blocks a third', (tester) async {
+  testWidgets('active trial allows more than two properties', (tester) async {
     await tester.pumpWidget(
       UnitTraceApp(
         store: InMemoryUnitTraceStore(),
@@ -665,6 +969,12 @@ void main() {
     expect(find.text('Pine Street Apt'), findsAtLeastNWidgets(1));
 
     await tapCreateProperty(tester);
-    expect(find.text('Beta property limit reached'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const Key('property-name-field')),
+      'Cedar Street Apt',
+    );
+    await tester.tap(find.text('Save property'));
+    await tester.pumpAndSettle();
+    expect(find.text('Cedar Street Apt'), findsAtLeastNWidgets(1));
   });
 }

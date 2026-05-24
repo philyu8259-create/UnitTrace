@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:unittrace/main.dart';
 import 'package:unittrace/src/data/in_memory_unittrace_store.dart';
 import 'package:unittrace/src/domain/entities.dart';
+import 'package:unittrace/src/services/pro_entitlement.dart';
 
 void main() {
   for (final scenario in _scenarios) {
@@ -17,6 +18,7 @@ void main() {
           store: await _seedStore(),
           initialLocale: const Locale('en'),
           captureLocation: false,
+          proController: _testProController(),
         ),
       );
       await tester.pumpAndSettle();
@@ -26,6 +28,24 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+}
+
+ProEntitlementController _testProController() {
+  return ProEntitlementController(
+    store: MemoryProEntitlementStore(),
+    purchaseClient: _ResponsivePurchaseClient(),
+    clock: () => DateTime.utc(2026, 5, 24, 12),
+  );
+}
+
+class _ResponsivePurchaseClient implements ProPurchaseClient {
+  @override
+  Future<ProPurchaseResult> buyLifetime() async =>
+      ProPurchaseResult.unavailable;
+
+  @override
+  Future<ProPurchaseResult> restorePurchases() async =>
+      ProPurchaseResult.unavailable;
 }
 
 const _scenarios = [

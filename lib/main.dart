@@ -21,6 +21,7 @@ import 'src/domain/room_templates.dart';
 import 'src/l10n/app_strings.dart';
 import 'src/services/app_directories.dart';
 import 'src/services/hash_service.dart';
+import 'src/services/pro_entitlement.dart';
 import 'src/services/report_archive.dart';
 import 'src/services/report_exporter.dart';
 import 'src/theme/app_colors.dart';
@@ -33,7 +34,7 @@ const _warmSurface = Color(0xFFFFFCF7);
 const _line = Color(0xFFE4E0D8);
 const _brass = Color(0xFFD49A36);
 const _danger = Color(0xFF9D3D2F);
-const _mvpPropertyLimit = 2;
+const _appIconAsset = 'assets/app_icon/unittrace_icon_source.png';
 Uri _privacyPolicyUriFor(AppStrings strings) => Uri.parse(
   strings.isChinese
       ? 'https://philyu8259-create.github.io/UnitTrace/privacy-policy-zh.html'
@@ -44,6 +45,10 @@ Uri _supportUriFor(AppStrings strings) => Uri.parse(
   strings.isChinese
       ? 'https://philyu8259-create.github.io/UnitTrace/support-zh.html'
       : 'https://philyu8259-create.github.io/UnitTrace/support-en.html',
+);
+
+final Uri _standardEulaUri = Uri.parse(
+  'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/',
 );
 
 Future<void> main() async {
@@ -94,6 +99,7 @@ class UnitTraceApp extends StatelessWidget {
     this.captureLocation = true,
     this.imagePicker,
     this.signatureExporter = _defaultSignatureExporter,
+    this.proController,
   });
 
   final UnitTraceStore store;
@@ -101,6 +107,7 @@ class UnitTraceApp extends StatelessWidget {
   final bool captureLocation;
   final UnitTraceImagePicker? imagePicker;
   final UnitTraceSignatureExporter signatureExporter;
+  final ProEntitlementController? proController;
 
   @override
   Widget build(BuildContext context) {
@@ -115,6 +122,7 @@ class UnitTraceApp extends StatelessWidget {
         captureLocation: captureLocation,
         imagePicker: imagePicker ?? DefaultUnitTraceImagePicker(),
         signatureExporter: signatureExporter,
+        proController: proController ?? ProEntitlementController.local(),
       ),
     );
   }
@@ -127,12 +135,14 @@ class UnitTraceHome extends StatefulWidget {
     required this.captureLocation,
     required this.imagePicker,
     required this.signatureExporter,
+    required this.proController,
   });
 
   final UnitTraceStore store;
   final bool captureLocation;
   final UnitTraceImagePicker imagePicker;
   final UnitTraceSignatureExporter signatureExporter;
+  final ProEntitlementController proController;
 
   @override
   State<UnitTraceHome> createState() => _UnitTraceHomeState();
@@ -152,11 +162,29 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
   bool _loading = true;
 
   AppStrings get strings => AppStrings.of(context);
+  ProEntitlementState get proState => widget.proController.state;
 
   @override
   void initState() {
     super.initState();
+    widget.proController.addListener(_onProChanged);
+    _initializePro();
     _reload();
+  }
+
+  @override
+  void dispose() {
+    widget.proController.removeListener(_onProChanged);
+    super.dispose();
+  }
+
+  void _onProChanged() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _initializePro() async {
+    await widget.proController.load();
+    await widget.proController.beginLocalTrialIfAvailable();
   }
 
   Future<void> _reload() async {
@@ -218,22 +246,8 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
   }
 
   Future<void> _createProperty() async {
-    if (_properties.length >= _mvpPropertyLimit) {
-      await showDialog<void>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(strings.proLimitTitle),
-          content: Text(strings.proLimitMessage),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(strings.ok),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
+    if (!await _requireProAccess()) return;
+    if (!mounted) return;
     final property = await showDialog<PropertyRecord>(
       context: context,
       builder: (context) => _PropertyDialog(strings: strings, uuid: _uuid),
@@ -249,6 +263,7 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
   }
 
   Future<void> _startInspection(InspectionType type) async {
+    if (!await _requireProAccess()) return;
     final property = _selectedProperty;
     if (property == null) return;
     final inspection = InspectionRecord(
@@ -298,11 +313,28 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
           captureLocation: widget.captureLocation,
           imagePicker: widget.imagePicker,
           signatureExporter: widget.signatureExporter,
+          proController: widget.proController,
         ),
       ),
     );
     if (!mounted) return;
     await _reload();
+  }
+
+  Future<bool> _requireProAccess() async {
+    if (proState.canStartTrial) {
+      await widget.proController.beginLocalTrialIfAvailable();
+    }
+    if (!mounted) return false;
+    if (proState.isProActive) return true;
+    await _showProPaywall(
+      context: context,
+      strings: strings,
+      controller: widget.proController,
+      reasonTitle: strings.proReadOnlyTitle,
+      reasonMessage: strings.proReadOnlyMessage,
+    );
+    return widget.proController.state.isProActive;
   }
 
   Future<void> _openReportHistory() async {
@@ -376,7 +408,7 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
     }
     return Scaffold(
       appBar: AppBar(
-        title: Text(strings.appTitle),
+        title: _AppBrandTitle(title: strings.appTitle),
         actions: [
           IconButton(
             tooltip: strings.createProperty,
@@ -455,6 +487,7 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
                 _ => _MorePanel(
                   strings: strings,
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 132),
+                  proController: widget.proController,
                 ),
               };
               return tabBody;
@@ -519,6 +552,54 @@ InspectionRecord? _latestInspectionFrom(
           .toList()
         ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   return sorted.firstOrNull;
+}
+
+class _AppBrandTitle extends StatelessWidget {
+  const _AppBrandTitle({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const _AppBrandMark(size: 32, radius: 9),
+        const SizedBox(width: 10),
+        Flexible(
+          child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        ),
+      ],
+    );
+  }
+}
+
+class _AppBrandMark extends StatelessWidget {
+  const _AppBrandMark({this.size = 28, this.radius = 8});
+
+  final double size;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.42)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x10172321),
+            blurRadius: 8,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Image.asset(_appIconAsset, fit: BoxFit.cover),
+    );
+  }
 }
 
 class _FloatingMobileTabs extends StatelessWidget {
@@ -1643,6 +1724,7 @@ class InspectionDetailPage extends StatelessWidget {
     required this.captureLocation,
     required this.imagePicker,
     required this.signatureExporter,
+    required this.proController,
   });
 
   final UnitTraceStore store;
@@ -1651,6 +1733,7 @@ class InspectionDetailPage extends StatelessWidget {
   final bool captureLocation;
   final UnitTraceImagePicker imagePicker;
   final UnitTraceSignatureExporter signatureExporter;
+  final ProEntitlementController proController;
 
   @override
   Widget build(BuildContext context) {
@@ -1698,6 +1781,7 @@ class InspectionDetailPage extends StatelessWidget {
             captureLocation: captureLocation,
             imagePicker: imagePicker,
             signatureExporter: signatureExporter,
+            proController: proController,
           ),
         ),
       ),
@@ -1715,6 +1799,7 @@ class InspectionWorkspace extends StatefulWidget {
     required this.captureLocation,
     required this.imagePicker,
     required this.signatureExporter,
+    required this.proController,
   });
 
   final UnitTraceStore store;
@@ -1724,6 +1809,7 @@ class InspectionWorkspace extends StatefulWidget {
   final bool captureLocation;
   final UnitTraceImagePicker imagePicker;
   final UnitTraceSignatureExporter signatureExporter;
+  final ProEntitlementController proController;
 
   @override
   State<InspectionWorkspace> createState() => _InspectionWorkspaceState();
@@ -1739,6 +1825,7 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
   String? _documentsPath;
   bool _busy = true;
   bool _locationExplained = false;
+  ProEntitlementState get _proState => widget.proController.state;
 
   @override
   void initState() {
@@ -1775,6 +1862,7 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
   }
 
   Future<void> _addEvidence({required ImageSource? source}) async {
+    if (!await _requireProAccess()) return;
     final room = _selectedRoom;
     if (room == null) return;
     var pickedPhotos = const <_PickedEvidencePhoto>[];
@@ -1970,6 +2058,8 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
   }
 
   Future<void> _addSignature() async {
+    if (!await _requireProAccess()) return;
+    if (!mounted) return;
     final signature = await showModalBottomSheet<SignatureRecord>(
       context: context,
       isScrollControlled: true,
@@ -1995,6 +2085,8 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
   }
 
   Future<void> _deleteSignature(SignatureRecord signature) async {
+    if (!await _requireProAccess()) return;
+    if (!mounted) return;
     final confirmed = await _confirmDestructiveAction(
       context: context,
       strings: widget.strings,
@@ -2011,6 +2103,8 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
   }
 
   Future<void> _deleteEvidence(EvidenceItemRecord evidence) async {
+    if (!await _requireProAccess()) return;
+    if (!mounted) return;
     final confirmed = await _confirmDestructiveAction(
       context: context,
       strings: widget.strings,
@@ -2031,6 +2125,7 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
   }
 
   Future<void> _exportReport() async {
+    if (!await _requireProAccess()) return;
     setState(() => _busy = true);
     try {
       final result = await ReportExporter().export(
@@ -2040,7 +2135,7 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
         evidenceItems: _evidence,
         signatures: _signatures,
         strings: widget.strings,
-        watermarked: true,
+        watermarked: _proState.shouldWatermarkPdf,
       );
       await Printing.sharePdf(
         bytes: await result.pdfFile.readAsBytes(),
@@ -2054,6 +2149,22 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<bool> _requireProAccess() async {
+    if (_proState.canStartTrial) {
+      await widget.proController.beginLocalTrialIfAvailable();
+    }
+    if (!mounted) return false;
+    if (_proState.isProActive) return true;
+    await _showProPaywall(
+      context: context,
+      strings: widget.strings,
+      controller: widget.proController,
+      reasonTitle: widget.strings.proReadOnlyTitle,
+      reasonMessage: widget.strings.proReadOnlyMessage,
+    );
+    return widget.proController.state.isProActive;
   }
 
   @override
@@ -2961,10 +3072,15 @@ class _ReportHistoryPanelState extends State<_ReportHistoryPanel> {
 }
 
 class _MorePanel extends StatelessWidget {
-  const _MorePanel({required this.strings, required this.padding});
+  const _MorePanel({
+    required this.strings,
+    required this.padding,
+    required this.proController,
+  });
 
   final AppStrings strings;
   final EdgeInsetsGeometry padding;
+  final ProEntitlementController proController;
 
   Future<void> _openLink(BuildContext context, Uri uri) async {
     final messenger = ScaffoldMessenger.of(context);
@@ -2978,96 +3094,474 @@ class _MorePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: padding,
-      children: [
-        _SectionHeader(title: strings.moreTab, subtitle: strings.moreSubtitle),
-        const SizedBox(height: 12),
-        _GuidePanel(
-          title: strings.moreGuideTitle,
-          subtitle: strings.moreGuideSubtitle,
-          steps: [
-            _GuideStepData(
-              icon: Icons.workspace_premium_outlined,
-              title: strings.proTitle,
-              body: strings.proSubtitle,
+    return AnimatedBuilder(
+      animation: proController,
+      builder: (context, _) => ListView(
+        padding: padding,
+        children: [
+          _SectionHeader(
+            title: strings.moreComplianceTitle,
+            subtitle: strings.moreSubtitle,
+          ),
+          const SizedBox(height: 12),
+          _MoreBrandCard(strings: strings),
+          const SizedBox(height: 12),
+          _MoreGroupHeader(title: strings.proSectionTitle),
+          _PremiumSurface(
+            backgroundColor: const Color(0xFFF8F2E8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  strings.proTitle,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  strings.proSubtitle,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: () => _showProPaywall(
+                    context: context,
+                    strings: strings,
+                    controller: proController,
+                  ),
+                  icon: const Icon(Icons.workspace_premium_outlined),
+                  label: Text(
+                    proController.state.isLifetimeActive
+                        ? strings.proActiveBadge
+                        : strings.buyLifetimeAction,
+                  ),
+                ),
+              ],
             ),
-            _GuideStepData(
-              icon: Icons.privacy_tip_outlined,
-              title: strings.privacyPolicy,
-              body: strings.privacySubtitle,
+          ),
+          const SizedBox(height: 12),
+          _MoreGroupHeader(title: strings.privacyDataSectionTitle),
+          _MoreTile(
+            icon: Icons.privacy_tip_outlined,
+            title: strings.privacyPolicy,
+            subtitle: strings.privacySubtitle,
+            trailing: const Icon(Icons.open_in_new_outlined),
+            onTap: () => _openLink(context, _privacyPolicyUriFor(strings)),
+          ),
+          _MoreTile(
+            icon: Icons.folder_off_outlined,
+            title: strings.localDataTitle,
+            subtitle: strings.localDataSubtitle,
+          ),
+          _MoreTile(
+            icon: Icons.admin_panel_settings_outlined,
+            title: strings.permissionUseTitle,
+            subtitle: strings.permissionUseSubtitle,
+          ),
+          const SizedBox(height: 2),
+          _MoreGroupHeader(title: strings.supportSectionTitle),
+          _MoreTile(
+            icon: Icons.support_agent_outlined,
+            title: strings.support,
+            subtitle: strings.supportSubtitle,
+            trailing: const Icon(Icons.open_in_new_outlined),
+            onTap: () => _openLink(context, _supportUriFor(strings)),
+          ),
+          _MoreTile(
+            icon: Icons.restore_outlined,
+            title: strings.restorePurchases,
+            subtitle: proController.state.isLifetimeActive
+                ? strings.proActiveBadge
+                : strings.proLifetimeSubtitle,
+            onTap: () => _restoreProPurchase(context, strings, proController),
+          ),
+          const SizedBox(height: 2),
+          _MoreGroupHeader(title: strings.legalSectionTitle),
+          _MoreTile(
+            icon: Icons.gavel_outlined,
+            title: strings.disclaimerTitle,
+            subtitle: strings.disclaimer,
+          ),
+          _MoreTile(
+            icon: Icons.description_outlined,
+            title: strings.eulaTitle,
+            subtitle: strings.eulaSubtitle,
+            trailing: const Icon(Icons.open_in_new_outlined),
+            onTap: () => _openLink(context, _standardEulaUri),
+          ),
+          const SizedBox(height: 2),
+          _MoreGroupHeader(title: strings.appInfoSectionTitle),
+          _MoreTile(
+            icon: Icons.info_outline,
+            title: strings.version,
+            subtitleWidget: FutureBuilder<PackageInfo>(
+              future: PackageInfo.fromPlatform(),
+              builder: (context, snapshot) {
+                final info = snapshot.data;
+                final version = info == null
+                    ? strings.loading
+                    : '${info.version} (${info.buildNumber})';
+                return Text(version);
+              },
             ),
-            _GuideStepData(
-              icon: Icons.support_agent_outlined,
-              title: strings.support,
-              body: strings.supportSubtitle,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Future<void> _showProPaywall({
+  required BuildContext context,
+  required AppStrings strings,
+  required ProEntitlementController controller,
+  String? reasonTitle,
+  String? reasonMessage,
+}) async {
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    backgroundColor: _warmSurface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    ),
+    builder: (context) => _ProPaywallSheet(
+      strings: strings,
+      controller: controller,
+      reasonTitle: reasonTitle,
+      reasonMessage: reasonMessage,
+    ),
+  );
+}
+
+Future<void> _restoreProPurchase(
+  BuildContext context,
+  AppStrings strings,
+  ProEntitlementController controller,
+) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final result = await controller.restorePurchases();
+  if (!context.mounted) return;
+  messenger.showSnackBar(
+    SnackBar(content: Text(_proResultMessage(strings, result))),
+  );
+}
+
+String _proResultMessage(AppStrings strings, ProPurchaseResult result) {
+  return switch (result) {
+    ProPurchaseResult.success => strings.proPurchaseSuccess,
+    ProPurchaseResult.restored => strings.restoreSuccess,
+    ProPurchaseResult.cancelled => strings.proPurchaseCancelled,
+    ProPurchaseResult.failed => strings.proPurchaseFailed,
+    ProPurchaseResult.pending => strings.proPurchasePending,
+    ProPurchaseResult.unavailable => strings.restoreUnavailable,
+  };
+}
+
+class _ProPaywallSheet extends StatefulWidget {
+  const _ProPaywallSheet({
+    required this.strings,
+    required this.controller,
+    this.reasonTitle,
+    this.reasonMessage,
+  });
+
+  final AppStrings strings;
+  final ProEntitlementController controller;
+  final String? reasonTitle;
+  final String? reasonMessage;
+
+  @override
+  State<_ProPaywallSheet> createState() => _ProPaywallSheetState();
+}
+
+class _ProPaywallSheetState extends State<_ProPaywallSheet> {
+  bool _busy = false;
+
+  Future<void> _openLegalLink(Uri uri) async {
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!mounted || opened) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(widget.strings.linkOpenFailed(uri.toString()))),
+    );
+  }
+
+  Future<void> _run(Future<ProPurchaseResult> Function() action) async {
+    setState(() => _busy = true);
+    final result = await action();
+    if (!mounted) return;
+    setState(() => _busy = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(_proResultMessage(widget.strings, result))),
+    );
+    if (widget.controller.state.isLifetimeActive) {
+      Navigator.pop(context);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = widget.strings;
+    final state = widget.controller.state;
+    final remaining = state.trialRemaining;
+    final remainingDays = remaining == null
+        ? 0
+        : (remaining.inHours / 24).ceil().clamp(1, 3);
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          6,
+          20,
+          20 + MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _PremiumSurface(
+              backgroundColor: AppColors.paper,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 46,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          color: AppColors.estateGreen,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(
+                          Icons.workspace_premium_outlined,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.reasonTitle ?? strings.proLifetimeTitle,
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              widget.reasonMessage ??
+                                  strings.proLifetimeSubtitle,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _TrustPill(
+                        icon: Icons.workspace_premium_outlined,
+                        label: state.isLifetimeActive
+                            ? strings.proActiveBadge
+                            : state.isTrialActive
+                            ? strings.trialEndsIn(remainingDays)
+                            : strings.proReadOnlyTitle,
+                        verified: state.isLifetimeActive,
+                      ),
+                      _TrustPill(
+                        icon: Icons.picture_as_pdf_outlined,
+                        label: strings.proBenefitNoWatermark,
+                      ),
+                      _TrustPill(
+                        icon: Icons.apartment_outlined,
+                        label: strings.proBenefitMoreProperties,
+                      ),
+                      _TrustPill(
+                        icon: Icons.cloud_off_outlined,
+                        label: strings.proBenefitLocalPrivate,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
+            const SizedBox(height: 12),
+            _MoreTile(
+              icon: Icons.lock_open_outlined,
+              title: strings.buyLifetimeAction,
+              subtitle: strings.proLifetimeSubtitle,
+              onTap: _busy ? null : () => _run(widget.controller.buyLifetime),
+            ),
+            if (state.canStartTrial)
+              _MoreTile(
+                icon: Icons.timer_outlined,
+                title: strings.proTrialTitle,
+                subtitle: strings.proTrialSubtitle,
+                onTap: _busy ? null : () => _run(widget.controller.startTrial),
+              ),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _busy
+                        ? null
+                        : () => _run(widget.controller.restorePurchases),
+                    icon: const Icon(Icons.restore_outlined),
+                    label: Text(strings.restorePurchases),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Center(
+              child: Wrap(
+                alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 4,
+                runSpacing: 0,
+                children: [
+                  Text(
+                    strings.proAgreementPrefix,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      minimumSize: Size.zero,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 4,
+                      ),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    onPressed: () => _openLegalLink(_standardEulaUri),
+                    child: Text(strings.eulaTitle),
+                  ),
+                  Text(
+                    strings.proAgreementJoiner,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      minimumSize: Size.zero,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 4,
+                      ),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    onPressed: () =>
+                        _openLegalLink(_privacyPolicyUriFor(strings)),
+                    child: Text(strings.privacyPolicy),
+                  ),
+                ],
+              ),
+            ),
+            if (_busy) ...[
+              const SizedBox(height: 12),
+              const LinearProgressIndicator(minHeight: 3),
+            ],
           ],
         ),
-        const SizedBox(height: 12),
-        _PremiumSurface(
-          backgroundColor: const Color(0xFFF8F2E8),
-          child: Column(
+      ),
+    );
+  }
+}
+
+class _MoreBrandCard extends StatelessWidget {
+  const _MoreBrandCard({required this.strings});
+
+  final AppStrings strings;
+
+  @override
+  Widget build(BuildContext context) {
+    return _PremiumSurface(
+      padding: const EdgeInsets.all(18),
+      backgroundColor: AppColors.paper,
+      borderColor: AppColors.hairline,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                strings.proTitle,
-                style: Theme.of(context).textTheme.titleLarge,
+              const _AppBrandMark(size: 54, radius: 14),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      strings.moreBrandTitle,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      strings.moreComplianceSubtitle,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 6),
-              Text(
-                strings.proSubtitle,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: null,
-                icon: const Icon(Icons.workspace_premium_outlined),
-                label: Text(strings.comingSoon),
+              const SizedBox(width: 8),
+              _TrustPill(
+                icon: Icons.lock_outline,
+                label: strings.moreBrandBadge,
+                verified: true,
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 12),
-        _MoreTile(
-          icon: Icons.privacy_tip_outlined,
-          title: strings.privacyPolicy,
-          subtitle: strings.privacySubtitle,
-          trailing: const Icon(Icons.open_in_new_outlined),
-          onTap: () => _openLink(context, _privacyPolicyUriFor(strings)),
-        ),
-        _MoreTile(
-          icon: Icons.support_agent_outlined,
-          title: strings.support,
-          subtitle: strings.supportSubtitle,
-          trailing: const Icon(Icons.open_in_new_outlined),
-          onTap: () => _openLink(context, _supportUriFor(strings)),
-        ),
-        _MoreTile(
-          icon: Icons.restore_outlined,
-          title: strings.restorePurchases,
-          subtitle: strings.comingSoon,
-        ),
-        _MoreTile(
-          icon: Icons.gavel_outlined,
-          title: strings.disclaimerTitle,
-          subtitle: strings.disclaimer,
-        ),
-        _MoreTile(
-          icon: Icons.info_outline,
-          title: strings.version,
-          subtitleWidget: FutureBuilder<PackageInfo>(
-            future: PackageInfo.fromPlatform(),
-            builder: (context, snapshot) {
-              final info = snapshot.data;
-              final version = info == null
-                  ? strings.loading
-                  : '${info.version} (${info.buildNumber})';
-              return Text(version);
-            },
+          const SizedBox(height: 14),
+          Text(
+            strings.moreBrandSubtitle,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: _mutedInk, height: 1.35),
           ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _TrustPill(
+                icon: Icons.person_off_outlined,
+                label: strings.noAccountRequired,
+              ),
+              _TrustPill(
+                icon: Icons.cloud_off_outlined,
+                label: strings.noPhotoUpload,
+              ),
+              _TrustPill(
+                icon: Icons.picture_as_pdf_outlined,
+                label: strings.pdfJsonEvidence,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MoreGroupHeader extends StatelessWidget {
+  const _MoreGroupHeader({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
+      child: Text(
+        title,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: _mutedInk,
+          fontWeight: FontWeight.w800,
         ),
-      ],
+      ),
     );
   }
 }
@@ -3097,9 +3591,34 @@ class _MoreTile extends StatelessWidget {
         padding: EdgeInsets.zero,
         child: ListTile(
           onTap: onTap,
-          leading: Icon(icon, color: _deepEmerald),
-          title: Text(title),
-          subtitle: subtitleWidget ?? Text(subtitle ?? ''),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 8,
+          ),
+          leading: Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: _mist,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: _deepEmerald, size: 20),
+          ),
+          title: Text(
+            title,
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 3),
+            child:
+                subtitleWidget ??
+                Text(
+                  subtitle ?? '',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+          ),
           trailing: trailing,
         ),
       ),

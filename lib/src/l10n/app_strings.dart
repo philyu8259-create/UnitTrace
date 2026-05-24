@@ -114,11 +114,6 @@ class AppStrings {
   String get captureReady => isChinese ? '采集就绪' : 'Capture ready';
   String get signatureReady => isChinese ? '签名就绪' : 'Signature ready';
   String get exportReady => isChinese ? '可导出' : 'Export ready';
-  String get proLimitTitle =>
-      isChinese ? '内测版房屋数量已满' : 'Beta property limit reached';
-  String get proLimitMessage => isChinese
-      ? 'MVP 先预留 Pro 解锁。当前内测版支持 2 个房屋，用于验证多房屋和报告归档体验。'
-      : 'Pro unlock is reserved for the MVP. The beta currently supports 2 properties so we can validate multi-property reports.';
   String get addEvidence => isChinese ? '添加证据' : 'Add evidence';
   String get addNote => isChinese ? '添加备注' : 'Add note';
   String get noteEvidenceSubtitle => isChinese
@@ -253,13 +248,83 @@ class AppStrings {
   String get reportsTab => isChinese ? '报告' : 'Reports';
   String get moreTab => isChinese ? '更多' : 'More';
   String get moreSubtitle => isChinese
-      ? '会员、隐私、支持与版本信息。'
-      : 'Membership, privacy, support, and app details.';
+      ? '关于、隐私、支持与应用信息。'
+      : 'About, privacy, support, and app information.';
+  String get moreComplianceTitle => isChinese ? '关于与合规' : 'About & Compliance';
+  String get moreComplianceSubtitle => isChinese
+      ? '本地优先的房况证据工具，面向入住、退租和普通检查。'
+      : 'A local-first property evidence tool for move-in, move-out, and general inspections.';
+  String get moreBrandBadge => isChinese ? '本地优先' : 'LOCAL FIRST';
+  String get moreBrandTitle => isChinese ? '房况留证' : 'UnitTrace';
+  String get moreBrandSubtitle => isChinese
+      ? '离线保存房源、照片、签名、PDF 报告和 JSON 证据清单。'
+      : 'Stores properties, photos, signatures, PDF reports, and JSON manifests on this device.';
+  String get noAccountRequired => isChinese ? '无需账号' : 'No account';
+  String get noPhotoUpload => isChinese ? '照片不上传' : 'No photo upload';
+  String get pdfJsonEvidence =>
+      isChinese ? 'PDF 与 JSON 留证' : 'PDF & JSON evidence';
+  String get proSectionTitle => isChinese ? '高级版' : 'Pro';
   String get proTitle => isChinese ? '房况留证高级版' : 'UnitTrace Pro';
   String get proSubtitle => isChinese
-      ? '后续解锁多房屋、无水印 PDF、导出历史和对比报告。'
-      : 'Unlock more properties, watermark-free PDFs, export history, and comparison reports later.';
+      ? '一次性解锁多房屋、无水印 PDF、完整报告历史和后续 Pro 功能。'
+      : 'One-time unlock for more properties, watermark-free PDFs, full report history, and future Pro features.';
+  String get proLifetimeTitle =>
+      isChinese ? 'UnitTrace Pro 永久解锁' : 'UnitTrace Pro Lifetime';
+  String get proLifetimePrice => r'$24.99';
+  String get proLifetimeSubtitle => isChinese
+      ? '一次性购买，解锁多房屋、无水印 PDF、完整报告历史和后续 Pro 功能。'
+      : 'One-time purchase for more properties, watermark-free PDFs, full report history, and future Pro features.';
+  String get proTrialTitle => isChinese ? '3 天免费试用' : '3-day free trial';
+  String get proTrialSubtitle => isChinese
+      ? '首次使用自动开启。试用结束后仍可查看已有数据，新增和导出需要 Pro。'
+      : 'Starts automatically on first use. After it ends, existing data stays readable; new edits and exports require Pro.';
+  String get proReadOnlyTitle => isChinese ? '试用已结束' : 'Trial ended';
+  String get proReadOnlyMessage => isChinese
+      ? '你仍可查看已有房屋、检查和报告。创建、编辑、签名或导出新报告需要开通 Pro。'
+      : 'You can still view existing properties, inspections, and reports. Creating, editing, signing, or exporting requires Pro.';
+  String get unlockProAction => isChinese ? '开通 Pro' : 'Unlock Pro';
+  String get startTrialAction => isChinese ? '开始 3 天试用' : 'Start 3-day trial';
+  String get buyLifetimeAction =>
+      isChinese ? '一次性购买 $proLifetimePrice' : 'Buy once $proLifetimePrice';
+  String get trialActiveBadge => isChinese ? '试用中' : 'Trial active';
+  String trialEndsIn(int days) =>
+      isChinese ? '试用剩余 $days 天' : '$days days left in trial';
+  String get proActiveBadge => isChinese ? 'Pro 已解锁' : 'Pro unlocked';
+  String get proUnavailableTitle =>
+      isChinese ? '高级版尚未开放' : 'Pro is not available yet';
+  String get proUnavailableMessage => isChinese
+      ? '当前无法连接 App Store 购买服务，请稍后再试。'
+      : 'Could not reach App Store purchases. Try again later.';
+  String get proPurchasePending =>
+      isChinese ? '购买正在处理中' : 'Purchase is pending';
+  String get proPurchaseCancelled => isChinese ? '购买已取消' : 'Purchase cancelled';
+  String get proPurchaseFailed => isChinese
+      ? '购买未完成，请稍后再试。'
+      : 'Purchase did not complete. Try again later.';
+  String get proPurchaseSuccess => isChinese ? 'Pro 已开通' : 'Pro unlocked';
+  String get restoreSuccess => isChinese ? '购买已恢复' : 'Purchase restored';
+  String get restoreUnavailable =>
+      isChinese ? '没有可恢复的购买' : 'No purchases to restore';
+  String get proBenefitNoWatermark =>
+      isChinese ? '无水印 PDF 证据包' : 'Watermark-free PDF packets';
+  String get proBenefitMoreProperties =>
+      isChinese ? '多房屋与多检查档案' : 'More properties and inspections';
+  String get proBenefitLocalPrivate =>
+      isChinese ? '本地优先，无账号上传' : 'Local-first, no account upload';
+  String get proAgreementPrefix =>
+      isChinese ? '购买即表示你同意' : 'By purchasing, you agree to the';
+  String get proAgreementJoiner => isChinese ? '与' : 'and';
+  String get privacyDataSectionTitle => isChinese ? '隐私与数据' : 'Privacy & Data';
   String get privacyPolicy => isChinese ? '隐私政策' : 'Privacy Policy';
+  String get localDataTitle => isChinese ? '本地数据说明' : 'Local Data';
+  String get localDataSubtitle => isChinese
+      ? '房屋、照片、签名、PDF 和 JSON manifest 保存在本机；通过系统分享后的去向由你选择。'
+      : 'Properties, photos, signatures, PDFs, and JSON manifests stay on this device; destinations after sharing are chosen by you.';
+  String get permissionUseTitle => isChinese ? '权限用途' : 'Permission Use';
+  String get permissionUseSubtitle => isChinese
+      ? '相机用于拍照留证，相册用于选择照片，位置用于可选的位置元数据。'
+      : 'Camera captures evidence, Photos selects existing images, and Location adds optional place metadata.';
+  String get supportSectionTitle => isChinese ? '支持' : 'Support';
   String get support => isChinese ? '支持与反馈' : 'Support';
   String get privacySubtitle => isChinese
       ? '查看本地优先、无账号、照片不上传的隐私说明。'
@@ -267,9 +332,13 @@ class AppStrings {
   String get supportSubtitle => isChinese
       ? '查看联系方式、反馈渠道和常见支持说明。'
       : 'View contact, feedback, and support information.';
+  String get legalSectionTitle => isChinese ? '法律说明' : 'Legal';
+  String get eulaTitle => isChinese ? '最终用户许可协议' : 'End User License Agreement';
+  String get eulaSubtitle =>
+      isChinese ? '查看 Apple 标准 EULA。' : 'View the Apple Standard EULA.';
   String get restorePurchases => isChinese ? '恢复购买' : 'Restore Purchases';
+  String get appInfoSectionTitle => isChinese ? '应用信息' : 'App Information';
   String get version => isChinese ? '版本' : 'Version';
-  String get comingSoon => isChinese ? '即将开放' : 'Coming soon';
   String get loading => isChinese ? '加载中' : 'Loading';
   String linkOpenFailed(String url) =>
       isChinese ? '无法打开链接：$url' : 'Could not open link: $url';
@@ -293,10 +362,6 @@ class AppStrings {
       ? '进入检查页，添加证据和签名后生成 PDF。导出的报告会保存在这里。'
       : 'Open a Home inspection, add evidence and signatures, then generate a PDF. Exports appear here.';
   String get goToInspection => isChinese ? '回到首页' : 'Go to Home';
-  String get moreGuideTitle => isChinese ? '上架前配置' : 'Before release';
-  String get moreGuideSubtitle => isChinese
-      ? '会员、隐私政策、支持链接和恢复购买会统一放在这里。'
-      : 'Membership, privacy, support, and purchase restore live here.';
   String get viewReport => isChinese ? '查看' : 'View';
   String get shareReportAction => isChinese ? '分享' : 'Share';
   String get pdfPreview => isChinese ? 'PDF 预览' : 'PDF preview';
