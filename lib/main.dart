@@ -1223,18 +1223,23 @@ class _PropertyDashboardCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasInspection = latestInspection != null;
     final exportReady = latestSummary?.canExport ?? false;
-    final latestType = latestInspection == null
+    final latestType = !hasInspection
         ? strings.noRecentInspection
         : _typeLabel(strings, latestInspection!.type);
     final evidenceCount = latestSummary?.evidenceCount ?? 0;
     final signatureCount = latestSummary?.signatureCount ?? 0;
-    final exportStatus = reportGenerated
+    final exportStatus = !hasInspection
+        ? null
+        : reportGenerated
         ? strings.reportReady
         : exportReady
         ? strings.readyToExport
         : strings.needsSignature;
-    final signatureStatus = signatureCount > 0
+    final signatureStatus = !hasInspection
+        ? null
+        : signatureCount > 0
         ? strings.signatures
         : strings.needSignatureLabel;
     final progress = latestSummary?.completionRatio ?? 0.0;
@@ -1292,19 +1297,26 @@ class _PropertyDashboardCard extends StatelessWidget {
                         spacing: 6,
                         runSpacing: 6,
                         children: [
+                          if (selected)
+                            _StatusPill(
+                              label: strings.activeProperty,
+                              emphasized: true,
+                            ),
                           _StatusPill(label: latestType),
                           _StatusPill(
                             label: '${strings.evidence} $evidenceCount',
                             emphasized: evidenceCount > 0,
                           ),
-                          _StatusPill(
-                            label: signatureStatus,
-                            emphasized: signatureCount > 0,
-                          ),
-                          _StatusPill(
-                            label: exportStatus,
-                            emphasized: exportReady || reportGenerated,
-                          ),
+                          if (signatureStatus != null)
+                            _StatusPill(
+                              label: signatureStatus,
+                              emphasized: signatureCount > 0,
+                            ),
+                          if (exportStatus != null)
+                            _StatusPill(
+                              label: exportStatus,
+                              emphasized: exportReady || reportGenerated,
+                            ),
                         ],
                       ),
                       const SizedBox(height: 8),
