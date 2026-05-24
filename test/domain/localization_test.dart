@@ -8,6 +8,10 @@ void main() {
 
     expect(strings.appTitle, '房况留证');
     expect(strings.createProperty, '创建房屋');
+    expect(strings.brandKicker, '房况留证');
+    expect(strings.localEvidenceVault, '本地证据保险箱');
+    expect(strings.evidenceDeskTagline, '时间戳 · 哈希 · 签名');
+    expect(strings.reportArchiveBadge, 'PDF 报告 · 证据清单');
   });
 
   test('falls back to English for unsupported locales', () {

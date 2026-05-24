@@ -903,7 +903,7 @@ class _DashboardSidebar extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      'UNITTRACE',
+                      strings.brandKicker,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: AppColors.graphite,
                         letterSpacing: 1.1,
@@ -2513,7 +2513,7 @@ class _ReportHistoryPanelState extends State<_ReportHistoryPanel> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'PDF REPORT · MANIFEST',
+                                        widget.strings.reportArchiveBadge,
                                         style: Theme.of(context)
                                             .textTheme
                                             .labelSmall
@@ -2747,8 +2747,8 @@ class _EvidenceCard extends StatelessWidget {
         ? strings.locationMissing
         : '${item.latitude!.toStringAsFixed(5)}, ${item.longitude!.toStringAsFixed(5)}';
     final watermark = item.photoHash == null
-        ? 'UNITTRACE'
-        : 'UNITTRACE · ${item.photoHash!}${item.photoHash!.isNotEmpty ? ' · $timestamp' : ''}';
+        ? strings.evidenceWatermarkBrand
+        : '${strings.evidenceWatermarkBrand} · ${item.photoHash!}${item.photoHash!.isNotEmpty ? ' · $timestamp' : ''}';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -2863,7 +2863,7 @@ class _EvidenceCard extends StatelessWidget {
                         emphasized: hasPhotoFile,
                       ),
                       _StatusPill(
-                        label: 'HASH: $shortHash',
+                        label: '${strings.hashBadgeLabel}: $shortHash',
                         emphasized: item.photoHash != null,
                       ),
                       _StatusPill(
@@ -3326,7 +3326,7 @@ String _caseIdForInspection(InspectionRecord inspection) {
   final suffix = suffixSource.length >= 4
       ? suffixSource.substring(0, 4).toUpperCase()
       : suffixSource.toUpperCase().padRight(4, '0');
-  return 'CASE-$dateTag-$suffix';
+  return 'UT-$dateTag-$suffix';
 }
 
 String _typeLabel(AppStrings strings, InspectionType type) {

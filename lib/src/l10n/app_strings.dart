@@ -35,11 +35,11 @@ class AppStrings {
       : 'Move from property to inspection type, room checklist, signatures, and export.';
   String get activeProperty => isChinese ? '当前房源' : 'Active property';
   String get evidenceDesk => isChinese ? '证据工坊' : 'Evidence Desk';
+  String get brandKicker => isChinese ? '房况留证' : 'UNITTRACE';
   String get localEvidenceVault =>
-      isChinese ? 'Local Evidence Vault' : 'Local Evidence Vault';
-  String get evidenceDeskTagline => isChinese
-      ? 'Timestamp · Hash · Signature'
-      : 'Timestamp · Hash · Signature';
+      isChinese ? '本地证据保险箱' : 'Local Evidence Vault';
+  String get evidenceDeskTagline =>
+      isChinese ? '时间戳 · 哈希 · 签名' : 'Timestamp · Hash · Signature';
   String get evidenceDeskTraits => isChinese
       ? '资产级封存 • 时间戳 • 位置与签名闭环'
       : 'Evidence vault feel · timestamp chain · signed integrity loop';
@@ -95,13 +95,13 @@ class AppStrings {
       isChinese ? '按房间采集照片和备注。' : 'Capture photos and notes by room.';
   String get stepReport => isChinese ? '报告' : 'Report';
   String get stepReportBody => isChinese
-      ? '生成可分享的 PDF 和 manifest。'
+      ? '生成可分享的 PDF 和证据清单。'
       : 'Generate a shareable PDF and manifest.';
   String get propertiesMetric => isChinese ? '房屋' : 'Properties';
   String get inspectionsMetric => isChinese ? '检查' : 'Inspections';
   String get evidenceWorkbench => isChinese ? '证据工作台' : 'Evidence workbench';
   String get archiveSubtitle => isChinese
-      ? '已导出的 PDF 和 manifest 会保存在本机档案中。'
+      ? '已导出的 PDF 和证据清单会保存在本机档案中。'
       : 'Exported PDFs and manifests stay archived on this device.';
   String get captureReady => isChinese ? '采集就绪' : 'Capture ready';
   String get signatureReady => isChinese ? '签名就绪' : 'Signature ready';
@@ -130,6 +130,7 @@ class AppStrings {
   String get notStarted => isChinese ? '未开始' : 'Not started';
   String get inProgress => isChinese ? '进行中' : 'In progress';
   String get hashStatus => isChinese ? '哈希状态' : 'Hash status';
+  String get hashBadgeLabel => isChinese ? '哈希' : 'HASH';
   String get photo => isChinese ? '照片' : 'Photo';
   String get photos => isChinese ? '照片' : 'Photos';
   String get locationStatus => isChinese ? '位置状态' : 'Location status';
@@ -232,7 +233,7 @@ class AppStrings {
   String get moreSubtitle => isChinese
       ? '会员、隐私、支持与版本信息。'
       : 'Membership, privacy, support, and app details.';
-  String get proTitle => isChinese ? 'UnitTrace Pro' : 'UnitTrace Pro';
+  String get proTitle => isChinese ? '房况留证高级版' : 'UnitTrace Pro';
   String get proSubtitle => isChinese
       ? '后续解锁多房屋、无水印 PDF、导出历史和对比报告。'
       : 'Unlock more properties, watermark-free PDFs, export history, and comparison reports later.';
@@ -245,6 +246,9 @@ class AppStrings {
       isChinese ? '上架前配置链接' : 'Link to be configured before release';
   String get disclaimerTitle => isChinese ? '免责声明' : 'Disclaimer';
   String get reportHistory => isChinese ? '报告历史' : 'Report history';
+  String get reportArchiveBadge =>
+      isChinese ? 'PDF 报告 · 证据清单' : 'PDF REPORT · MANIFEST';
+  String get evidenceWatermarkBrand => isChinese ? '房况留证' : 'UNITTRACE';
   String get reportFilterAll => isChinese ? '全部' : 'All';
   String get reportFilterMoveIn => isChinese ? '入住' : 'Move-in';
   String get reportFilterMoveOut => isChinese ? '退租' : 'Move-out';

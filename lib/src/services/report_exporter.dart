@@ -413,7 +413,7 @@ class ReportExporter {
             pw.Padding(
               padding: const pw.EdgeInsets.only(top: 6),
               child: pw.Text(
-                'Signature SHA-256: ${signature.signatureHash}',
+                '${labels.signatureHash}: ${signature.signatureHash}',
                 style: const pw.TextStyle(
                   fontSize: 8,
                   color: PdfColors.grey600,
@@ -503,7 +503,7 @@ class ReportExporter {
                   ),
                 if (item.photoHash != null)
                   pw.Text(
-                    'SHA-256: ${item.photoHash}',
+                    '${labels.photoHash}: ${item.photoHash}',
                     style: const pw.TextStyle(
                       fontSize: 8,
                       color: PdfColors.grey600,
@@ -573,8 +573,8 @@ class _ReportPdfLabels {
   String get propertyName => isChinese ? '房屋名称' : 'Property name';
   String get address => isChinese ? '地址' : 'Address';
   String get device => isChinese ? '设备' : 'Device';
-  String get appVersion => isChinese ? 'App 版本' : 'App version';
-  String get manifestHash => isChinese ? 'Manifest 哈希' : 'Manifest hash';
+  String get appVersion => isChinese ? '应用版本' : 'App version';
+  String get manifestHash => isChinese ? '证据清单哈希' : 'Manifest hash';
   String get evidenceCount => isChinese ? '证据数量' : 'Evidence items';
   String get photoCount => isChinese ? '照片数量' : 'Photos';
   String get signatureCount => isChinese ? '签名数量' : 'Signatures';
@@ -585,12 +585,14 @@ class _ReportPdfLabels {
       isChinese ? '本报告没有签名记录。' : 'No signatures in this report.';
   String get disclaimerTitle => isChinese ? '免责声明' : 'Disclaimer';
   String get freeWatermark =>
-      isChinese ? '由 UnitTrace 内测版生成' : 'Generated with UnitTrace Beta';
+      isChinese ? '由房况留证内测版生成' : 'Generated with UnitTrace Beta';
   String get noNote => isChinese ? '无备注' : '(No note)';
   String get severity => isChinese ? '严重程度' : 'Severity';
   String get capturedAt => isChinese ? '采集时间' : 'Captured';
   String get signedAt => isChinese ? '签署时间' : 'Signed at';
   String get location => isChinese ? '位置' : 'Location';
+  String get photoHash => isChinese ? '照片 SHA-256' : 'SHA-256';
+  String get signatureHash => isChinese ? '签名 SHA-256' : 'Signature SHA-256';
   String get photoFileMissing => isChinese ? '照片文件缺失' : 'Photo file missing';
 
   String pageLabel(int pageNumber, int pageCount) {

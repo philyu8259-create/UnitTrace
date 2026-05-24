@@ -60,6 +60,26 @@ void main() {
     expect(find.text('Start inspection'), findsOneWidget);
   });
 
+  testWidgets('Chinese dashboard does not mix English hero copy', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      UnitTraceApp(
+        store: InMemoryUnitTraceStore(),
+        initialLocale: const Locale('zh', 'Hans'),
+        captureLocation: false,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('房况留证'), findsWidgets);
+    expect(find.text('本地证据保险箱'), findsOneWidget);
+    expect(find.text('时间戳 · 哈希 · 签名'), findsOneWidget);
+    expect(find.text('Local Evidence Vault'), findsNothing);
+    expect(find.text('Timestamp · Hash · Signature'), findsNothing);
+    expect(find.text('UNITTRACE'), findsNothing);
+  });
+
   testWidgets('runs inspection note and signature flow', (tester) async {
     final store = InMemoryUnitTraceStore();
     await tester.pumpWidget(
