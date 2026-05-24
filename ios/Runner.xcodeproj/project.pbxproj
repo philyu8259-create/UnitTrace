@@ -206,6 +206,7 @@
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				5BDB50C20FC61895CE881BE2 /* [CP] Embed Pods Frameworks */,
+				8C4189A32CC15FA6006A2C11 /* Thin and Resign Native Asset Frameworks */,
 			);
 			buildRules = (
 			);
@@ -332,6 +333,22 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		8C4189A32CC15FA6006A2C11 /* Thin and Resign Native Asset Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Thin and Resign Native Asset Frameworks";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\nFRAMEWORKS_DIR=\"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}\"\nif [ ! -d \"$FRAMEWORKS_DIR\" ]; then\n  exit 0\nfi\nfind \"$FRAMEWORKS_DIR\" -maxdepth 1 -name \"*.framework\" -type d | while read -r FRAMEWORK; do\n  BINARY=\"$FRAMEWORK/$(basename \"$FRAMEWORK\" .framework)\"\n  if [ ! -f \"$BINARY\" ]; then\n    continue\n  fi\n  if lipo -info \"$BINARY\" 2>/dev/null | grep -q \"x86_64\"; then\n    lipo \"$BINARY\" -remove x86_64 -output \"$BINARY\"\n  fi\n  if [ \"${CODE_SIGNING_ALLOWED}\" = \"YES\" ] && [ -n \"${EXPANDED_CODE_SIGN_IDENTITY}\" ]; then\n    /usr/bin/codesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\" --preserve-metadata=identifier,entitlements \"$FRAMEWORK\"\n  fi\ndone\n";
 			showEnvVarsInLog = 0;
 		};
 		9740EEB61CF901F6004384FC /* Run Script */ = {
