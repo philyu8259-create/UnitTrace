@@ -407,7 +407,7 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
             if (!wide) {
               final tabBody = switch (_mobileTabIndex) {
                 0 => ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 104),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 132),
                   children: [
                     sidebar,
                     if (_selectedProperty == null) ...[
@@ -419,12 +419,12 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
                 1 => _ReportHistoryPanel(
                   strings: strings,
                   showClose: false,
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 104),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 132),
                   onOpenInspection: () => setState(() => _mobileTabIndex = 0),
                 ),
                 _ => _MorePanel(
                   strings: strings,
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 104),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 132),
                 ),
               };
               return tabBody;
@@ -1244,21 +1244,16 @@ class _PropertyDashboardCard extends StatelessWidget {
     return _PremiumSurface(
       padding: EdgeInsets.zero,
       backgroundColor: Colors.white,
-      borderColor: selected ? AppColors.deepEmerald : AppColors.hairline,
+      borderColor: selected ? const Color(0xFFB8D0C7) : AppColors.hairline,
       radius: 16,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(0, 4, 12, 12),
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
           child: IntrinsicHeight(
             child: Row(
               children: [
-                Container(
-                  width: 3,
-                  color: selected ? AppColors.deepEmerald : AppColors.hairline,
-                ),
-                const SizedBox(width: 12),
                 Container(
                   width: 42,
                   height: 42,
@@ -2408,23 +2403,16 @@ class _RoomChecklistCard extends StatelessWidget {
       child: _PremiumSurface(
         padding: EdgeInsets.zero,
         backgroundColor: Colors.white,
-        borderColor: selected ? AppColors.deepEmerald : AppColors.hairline,
+        borderColor: selected ? const Color(0xFFB8D0C7) : AppColors.hairline,
         radius: 16,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
-          child: IntrinsicHeight(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 4,
-                  color: status.isComplete
-                      ? AppColors.success
-                      : selected
-                      ? AppColors.deepEmerald
-                      : AppColors.hairline,
-                ),
-                const SizedBox(width: 12),
                 Container(
                   width: 40,
                   height: 40,
