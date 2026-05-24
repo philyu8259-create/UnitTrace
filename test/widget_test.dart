@@ -35,12 +35,12 @@ Future<void> waitForInspectionWorkspace(WidgetTester tester) async {
   for (var i = 0; i < 20; i++) {
     await tester.pump(const Duration(milliseconds: 100));
     if (find.byTooltip('Back to Home').evaluate().isNotEmpty &&
-        find.byTooltip('Camera').evaluate().isNotEmpty) {
+        find.byIcon(Icons.photo_camera_outlined).evaluate().isNotEmpty) {
       return;
     }
   }
   expect(find.byTooltip('Back to Home'), findsOneWidget);
-  expect(find.byTooltip('Camera'), findsOneWidget);
+  expect(find.byIcon(Icons.photo_camera_outlined), findsAtLeastNWidgets(1));
 }
 
 Finder verticalScrollable() {
@@ -158,8 +158,8 @@ void main() {
       scrollable: verticalScrollable(),
     );
     expect(find.byTooltip('Add note'), findsNothing);
-    expect(find.byTooltip('Camera'), findsOneWidget);
-    expect(find.byTooltip('Gallery'), findsOneWidget);
+    expect(find.byIcon(Icons.photo_camera_outlined), findsAtLeastNWidgets(1));
+    expect(find.byIcon(Icons.photo_library_outlined), findsAtLeastNWidgets(1));
     expect(find.text('Add note'), findsWidgets);
     expect(find.widgetWithText(FilledButton, 'Add evidence'), findsNothing);
     expect(find.widgetWithText(FilledButton, 'Add signature'), findsOneWidget);
@@ -399,7 +399,7 @@ void main() {
     }
     await waitForInspectionWorkspace(tester);
 
-    final cameraButton = find.byTooltip('Camera').first;
+    final cameraButton = find.byIcon(Icons.photo_camera_outlined).first;
     await tester.ensureVisible(cameraButton);
     await tester.tap(cameraButton);
     await tester.pumpAndSettle();

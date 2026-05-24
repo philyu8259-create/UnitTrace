@@ -6,22 +6,35 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:unittrace/main.dart';
 import 'package:unittrace/src/data/in_memory_unittrace_store.dart';
 import 'package:unittrace/src/domain/entities.dart';
+import 'package:unittrace/src/services/app_directories.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUpAll(() async {
+  setUp(() async {
     final temp = await Directory.systemTemp.createTemp('unittrace-goldens');
+    AppDirectories.setDocumentsDirectoryForTesting(temp);
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-          const MethodChannel('plugins.flutter.io/path_provider'),
+          const MethodChannel('unittrace/app_directories'),
           (call) async {
-            if (call.method == 'getApplicationDocumentsDirectory') {
+            if (call.method == 'documentsDirectory') {
               return temp.path;
             }
             return temp.path;
           },
         );
+    addTearDown(() async {
+      AppDirectories.resetForTesting();
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            const MethodChannel('unittrace/app_directories'),
+            null,
+          );
+      if (await temp.exists()) {
+        await temp.delete(recursive: true);
+      }
+    });
   });
 
   testWidgets('golden home dashboard', (tester) async {
@@ -88,8 +101,19 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Reports'));
-    await tester.pump();
+    final appContext = tester.element(find.byType(UnitTraceApp));
+    await tester.runAsync(
+      () => precacheImage(
+        const AssetImage('assets/images/report_archive.png'),
+        appContext,
+      ),
+    );
+    await tester.tapAt(const Offset(220, 925));
+    await tester.pumpAndSettle();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    });
+    await tester.pumpAndSettle();
     await _pumpUntilReportHistoryReady(tester);
 
     await expectLater(

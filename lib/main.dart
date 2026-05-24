@@ -7,7 +7,6 @@ import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
 import 'package:signature/signature.dart';
 import 'package:uuid/uuid.dart';
@@ -18,6 +17,7 @@ import 'src/domain/entities.dart';
 import 'src/domain/inspection_progress.dart';
 import 'src/domain/room_templates.dart';
 import 'src/l10n/app_strings.dart';
+import 'src/services/app_directories.dart';
 import 'src/services/hash_service.dart';
 import 'src/services/report_archive.dart';
 import 'src/services/report_exporter.dart';
@@ -40,13 +40,7 @@ Future<void> main() async {
 }
 
 Future<Directory> _safeApplicationDocumentsDirectory() async {
-  try {
-    return await getApplicationDocumentsDirectory().timeout(
-      const Duration(milliseconds: 800),
-    );
-  } on Exception {
-    return Directory.systemTemp;
-  }
+  return AppDirectories.documents();
 }
 
 abstract class UnitTraceImagePicker {

@@ -5,13 +5,13 @@ import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../domain/entities.dart';
 import '../domain/report_manifest.dart';
 import '../l10n/app_strings.dart';
+import 'app_directories.dart';
 
 class ReportExportResult {
   const ReportExportResult({
@@ -86,7 +86,7 @@ class ReportExporter {
   }
 
   static Future<Directory> reportsDirectory() async {
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await AppDirectories.documents();
     return Directory(p.join(directory.path, 'reports'));
   }
 
@@ -551,13 +551,7 @@ class ReportExporter {
   }
 
   Future<Directory> _safeApplicationDocumentsDirectory() async {
-    try {
-      return await getApplicationDocumentsDirectory().timeout(
-        const Duration(milliseconds: 800),
-      );
-    } on Exception {
-      return Directory.systemTemp;
-    }
+    return AppDirectories.documents();
   }
 
   File? _resolveEvidencePhotoFile(String? photoPath, Directory documents) {

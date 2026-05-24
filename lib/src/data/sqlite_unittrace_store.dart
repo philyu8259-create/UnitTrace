@@ -1,8 +1,8 @@
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../domain/entities.dart';
+import '../services/app_directories.dart';
 import 'unittrace_store.dart';
 
 class SqliteUnitTraceStore implements UnitTraceStore {
@@ -11,7 +11,7 @@ class SqliteUnitTraceStore implements UnitTraceStore {
   final Database _db;
 
   static Future<SqliteUnitTraceStore> open() async {
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await AppDirectories.documents();
     final db = await openDatabase(
       p.join(directory.path, 'unittrace.sqlite'),
       version: 1,
