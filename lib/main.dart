@@ -62,6 +62,13 @@ abstract class UnitTraceImagePicker {
   Future<List<XFile>> pickMultiImage({int? imageQuality});
 }
 
+typedef UnitTraceSignatureExporter =
+    Future<Uint8List?> Function(SignatureController controller);
+
+Future<Uint8List?> _defaultSignatureExporter(SignatureController controller) {
+  return controller.toPngBytes(width: 800, height: 440);
+}
+
 class DefaultUnitTraceImagePicker implements UnitTraceImagePicker {
   DefaultUnitTraceImagePicker({ImagePicker? picker})
     : _picker = picker ?? ImagePicker();
@@ -86,12 +93,14 @@ class UnitTraceApp extends StatelessWidget {
     this.initialLocale,
     this.captureLocation = true,
     this.imagePicker,
+    this.signatureExporter = _defaultSignatureExporter,
   });
 
   final UnitTraceStore store;
   final Locale? initialLocale;
   final bool captureLocation;
   final UnitTraceImagePicker? imagePicker;
+  final UnitTraceSignatureExporter signatureExporter;
 
   @override
   Widget build(BuildContext context) {
@@ -105,6 +114,7 @@ class UnitTraceApp extends StatelessWidget {
         store: store,
         captureLocation: captureLocation,
         imagePicker: imagePicker ?? DefaultUnitTraceImagePicker(),
+        signatureExporter: signatureExporter,
       ),
     );
   }
@@ -116,11 +126,13 @@ class UnitTraceHome extends StatefulWidget {
     required this.store,
     required this.captureLocation,
     required this.imagePicker,
+    required this.signatureExporter,
   });
 
   final UnitTraceStore store;
   final bool captureLocation;
   final UnitTraceImagePicker imagePicker;
+  final UnitTraceSignatureExporter signatureExporter;
 
   @override
   State<UnitTraceHome> createState() => _UnitTraceHomeState();
@@ -285,6 +297,7 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
           inspection: inspection,
           captureLocation: widget.captureLocation,
           imagePicker: widget.imagePicker,
+          signatureExporter: widget.signatureExporter,
         ),
       ),
     );
@@ -1629,6 +1642,7 @@ class InspectionDetailPage extends StatelessWidget {
     required this.inspection,
     required this.captureLocation,
     required this.imagePicker,
+    required this.signatureExporter,
   });
 
   final UnitTraceStore store;
@@ -1636,6 +1650,7 @@ class InspectionDetailPage extends StatelessWidget {
   final InspectionRecord inspection;
   final bool captureLocation;
   final UnitTraceImagePicker imagePicker;
+  final UnitTraceSignatureExporter signatureExporter;
 
   @override
   Widget build(BuildContext context) {
@@ -1682,6 +1697,7 @@ class InspectionDetailPage extends StatelessWidget {
             strings: strings,
             captureLocation: captureLocation,
             imagePicker: imagePicker,
+            signatureExporter: signatureExporter,
           ),
         ),
       ),
@@ -1698,6 +1714,7 @@ class InspectionWorkspace extends StatefulWidget {
     required this.strings,
     required this.captureLocation,
     required this.imagePicker,
+    required this.signatureExporter,
   });
 
   final UnitTraceStore store;
@@ -1706,6 +1723,7 @@ class InspectionWorkspace extends StatefulWidget {
   final AppStrings strings;
   final bool captureLocation;
   final UnitTraceImagePicker imagePicker;
+  final UnitTraceSignatureExporter signatureExporter;
 
   @override
   State<InspectionWorkspace> createState() => _InspectionWorkspaceState();
@@ -1964,6 +1982,7 @@ class _InspectionWorkspaceState extends State<InspectionWorkspace> {
         strings: widget.strings,
         uuid: _uuid,
         inspectionId: widget.inspection.id,
+        signatureExporter: widget.signatureExporter,
       ),
     );
     if (signature == null) return;
@@ -3520,11 +3539,13 @@ class _SignatureDialog extends StatefulWidget {
     required this.strings,
     required this.uuid,
     required this.inspectionId,
+    required this.signatureExporter,
   });
 
   final AppStrings strings;
   final Uuid uuid;
   final String inspectionId;
+  final UnitTraceSignatureExporter signatureExporter;
 
   @override
   State<_SignatureDialog> createState() => _SignatureDialogState();
@@ -3537,34 +3558,46 @@ class _SignatureDialogState extends State<_SignatureDialog> {
     penColor: Colors.black,
   );
   String _role = 'Tenant';
+  bool _hasSignature = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_syncSignatureState);
+  }
 
   @override
   void dispose() {
+    _controller.removeListener(_syncSignatureState);
     _name.dispose();
     _controller.dispose();
     super.dispose();
   }
 
+  void _syncSignatureState() {
+    final hasSignature = _controller.isNotEmpty;
+    if (hasSignature == _hasSignature) return;
+    setState(() => _hasSignature = hasSignature);
+  }
+
   Future<void> _save() async {
-    Uint8List? bytes;
-    if (_controller.isNotEmpty) {
-      bytes = await _controller.toPngBytes();
+    if (!_hasSignature) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(widget.strings.signatureRequired)));
+      return;
     }
+    Uint8List? bytes;
+    bytes = await widget.signatureExporter(_controller);
+    if (bytes == null) return;
     String? signaturePath;
     String? signatureHash;
-    if (bytes != null) {
-      final directory = await _safeApplicationDocumentsDirectory();
-      final signatureDirectory = Directory(
-        p.join(directory.path, 'signatures'),
-      );
-      await signatureDirectory.create(recursive: true);
-      signaturePath = p.join(
-        signatureDirectory.path,
-        '${widget.uuid.v4()}.png',
-      );
-      await File(signaturePath).writeAsBytes(bytes, flush: true);
-      signatureHash = HashService.sha256ForBytes(bytes);
-    }
+    final directory = await _safeApplicationDocumentsDirectory();
+    final signatureDirectory = Directory(p.join(directory.path, 'signatures'));
+    await signatureDirectory.create(recursive: true);
+    signaturePath = p.join(signatureDirectory.path, '${widget.uuid.v4()}.png');
+    await File(signaturePath).writeAsBytes(bytes, flush: true);
+    signatureHash = HashService.sha256ForBytes(bytes);
     if (!mounted) return;
     Navigator.pop(
       context,
@@ -3657,10 +3690,16 @@ class _SignatureDialogState extends State<_SignatureDialog> {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(16),
                       child: Signature(
+                        key: const Key('signature-pad'),
                         controller: _controller,
                         backgroundColor: Colors.white,
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    widget.strings.signatureRequired,
+                    style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const SizedBox(height: 14),
                   OverflowBar(
@@ -3670,7 +3709,10 @@ class _SignatureDialogState extends State<_SignatureDialog> {
                     overflowAlignment: OverflowBarAlignment.end,
                     children: [
                       TextButton(
-                        onPressed: _controller.clear,
+                        onPressed: () {
+                          _controller.clear();
+                          _syncSignatureState();
+                        },
                         child: Text(widget.strings.clear),
                       ),
                       TextButton(
@@ -3681,7 +3723,7 @@ class _SignatureDialogState extends State<_SignatureDialog> {
                         style: FilledButton.styleFrom(
                           minimumSize: const Size(0, 48),
                         ),
-                        onPressed: _save,
+                        onPressed: _hasSignature ? _save : null,
                         child: Text(widget.strings.saveSignature),
                       ),
                     ],

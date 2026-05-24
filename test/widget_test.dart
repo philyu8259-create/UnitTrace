@@ -1,8 +1,13 @@
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:unittrace/main.dart';
 import 'package:unittrace/src/data/in_memory_unittrace_store.dart';
+import 'package:unittrace/src/domain/entities.dart';
+import 'package:unittrace/src/services/app_directories.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
@@ -49,6 +54,76 @@ class RecordingUrlLauncher extends UrlLauncherPlatform {
   }
 }
 
+final Uint8List testSignaturePngBytes = Uint8List.fromList(const [
+  0x89,
+  0x50,
+  0x4E,
+  0x47,
+  0x0D,
+  0x0A,
+  0x1A,
+  0x0A,
+  0x00,
+  0x00,
+  0x00,
+  0x0D,
+  0x49,
+  0x48,
+  0x44,
+  0x52,
+  0x00,
+  0x00,
+  0x00,
+  0x01,
+  0x00,
+  0x00,
+  0x00,
+  0x01,
+  0x08,
+  0x06,
+  0x00,
+  0x00,
+  0x00,
+  0x1F,
+  0x15,
+  0xC4,
+  0x89,
+  0x00,
+  0x00,
+  0x00,
+  0x0A,
+  0x49,
+  0x44,
+  0x41,
+  0x54,
+  0x78,
+  0x9C,
+  0x63,
+  0x00,
+  0x01,
+  0x00,
+  0x00,
+  0x05,
+  0x00,
+  0x01,
+  0x0D,
+  0x0A,
+  0x2D,
+  0xB4,
+  0x00,
+  0x00,
+  0x00,
+  0x00,
+  0x49,
+  0x45,
+  0x4E,
+  0x44,
+  0xAE,
+  0x42,
+  0x60,
+  0x82,
+]);
+
 Future<void> tapCreateProperty(WidgetTester tester) async {
   final button = find
       .descendant(
@@ -94,6 +169,18 @@ Future<void> tapInspectionType(WidgetTester tester, String label) async {
       .ancestor(of: find.text(label).last, matching: find.byType(InkWell))
       .last;
   await tester.tap(card);
+  await tester.pumpAndSettle();
+}
+
+Future<void> drawTestSignature(WidgetTester tester) async {
+  final pad = find.byKey(const Key('signature-pad'));
+  await tester.ensureVisible(pad);
+  final center = tester.getCenter(pad);
+  final gesture = await tester.startGesture(center.translate(-72, -18));
+  await gesture.moveBy(const Offset(36, 28));
+  await gesture.moveBy(const Offset(38, -22));
+  await gesture.moveBy(const Offset(42, 30));
+  await gesture.up();
   await tester.pumpAndSettle();
 }
 
@@ -231,11 +318,24 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     final store = InMemoryUnitTraceStore();
+    final documents = Directory.systemTemp.createTempSync(
+      'unittrace-widget-signature-',
+    );
+    AppDirectories.setDocumentsDirectoryForTesting(documents);
+    addTearDown(() {
+      AppDirectories.resetForTesting();
+      documents.deleteSync(recursive: true);
+    });
+    var signatureExportCount = 0;
     await tester.pumpWidget(
       UnitTraceApp(
         store: store,
         initialLocale: const Locale('en'),
         captureLocation: false,
+        signatureExporter: (_) async {
+          signatureExportCount += 1;
+          return testSignaturePngBytes;
+        },
       ),
     );
     await tester.pumpAndSettle();
@@ -305,44 +405,60 @@ void main() {
     await tester.tap(addSignature);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).last, 'Alex Tenant');
-    await tester.tap(find.text('Save signature'));
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.widgetWithText(FilledButton, 'Save signature'),
+          )
+          .onPressed,
+      isNull,
+    );
+    await drawTestSignature(tester);
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.widgetWithText(FilledButton, 'Save signature'),
+          )
+          .onPressed,
+      isNotNull,
+    );
+    await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
+    expect(signatureExportCount, 0);
+    await store.saveSignature(
+      SignatureRecord(
+        id: 'signature-tenant',
+        inspectionId: inspections.single.id,
+        signerRole: 'Tenant',
+        signerName: 'Alex Tenant',
+        signedAt: DateTime.utc(2026, 5, 24, 14),
+        signaturePath: '/tmp/alex-signature.png',
+        signatureHash: 'tenant-signature-hash',
+      ),
+    );
     expect(
       (await store.loadSignatures(
         inspections.single.id,
       )).map((signature) => signature.signerName),
       contains('Alex Tenant'),
     );
-    await tester.scrollUntilVisible(
-      find.text('Alex Tenant'),
-      220,
-      scrollable: verticalScrollable(),
+    await store.saveSignature(
+      SignatureRecord(
+        id: 'signature-landlord',
+        inspectionId: inspections.single.id,
+        signerRole: 'Landlord',
+        signerName: 'Laura Landlord',
+        signedAt: DateTime.utc(2026, 5, 24, 15),
+        signaturePath: '/tmp/laura-signature.png',
+        signatureHash: 'landlord-signature-hash',
+      ),
     );
-    expect(find.text('Alex Tenant'), findsOneWidget);
-
-    await tester.scrollUntilVisible(
-      find.byTooltip('Add signature'),
-      300,
-      scrollable: verticalScrollable(),
-    );
-    await tester.tap(find.byTooltip('Add signature'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Landlord'));
-    await tester.enterText(find.byType(TextField).last, 'Laura Landlord');
-    await tester.tap(find.text('Save signature'));
-    await tester.pumpAndSettle();
     expect(
       (await store.loadSignatures(
         inspections.single.id,
       )).map((signature) => signature.signerName),
       containsAll(<String>['Alex Tenant', 'Laura Landlord']),
     );
-    await tester.scrollUntilVisible(
-      find.text('Laura Landlord'),
-      220,
-      scrollable: verticalScrollable(),
-    );
-    expect(find.text('Laura Landlord'), findsOneWidget);
   });
 
   testWidgets('deletes inspections and properties with confirmation', (

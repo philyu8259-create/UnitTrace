@@ -42,7 +42,8 @@ class ReportManifest {
     final json = <String, Object?>{
       'reportId': reportId,
       'inspectionType': inspection.type.storageKey,
-      'reportTitle': '${property.name} ${inspection.type.storageKey}',
+      'reportTitle':
+          '${property.name} ${_manifestInspectionTitle(inspection.type, inspection.languageCode)}',
       'property': property.toJson(),
       'inspection': inspection.toJson(),
       'rooms': rooms.map((room) => room.toJson()).toList(),
@@ -60,6 +61,15 @@ class ReportManifest {
     }
     return json;
   }
+}
+
+String _manifestInspectionTitle(InspectionType type, String languageCode) {
+  final isChinese = languageCode.toLowerCase().startsWith('zh');
+  return switch (type) {
+    InspectionType.moveIn => isChinese ? '入住检查' : 'Move-in Inspection',
+    InspectionType.moveOut => isChinese ? '退租检查' : 'Move-out Inspection',
+    InspectionType.general => isChinese ? '普通检查' : 'General Inspection',
+  };
 }
 
 class ReportManifestBuilder {

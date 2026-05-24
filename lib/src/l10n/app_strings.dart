@@ -226,6 +226,8 @@ class AppStrings {
   String get landlord => isChinese ? '房东' : 'Landlord';
   String get clear => isChinese ? '清除' : 'Clear';
   String get saveSignature => isChinese ? '保存签名' : 'Save signature';
+  String get signatureRequired =>
+      isChinese ? '请先在签名框内手写签名。' : 'Draw a signature before saving.';
   String get signatureSaved => isChinese ? '签名已保存' : 'Signature saved';
   String get generateReport => isChinese ? '生成 PDF 证据包' : 'Generate PDF report';
   String get shareReport => isChinese ? '分享报告' : 'Share report';
