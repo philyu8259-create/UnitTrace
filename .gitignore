@@ -12,6 +12,7 @@
 .swiftpm/
 migrate_working_dir/
 .worktrees/
+.xcodebuildmcp/
 
 # IntelliJ related
 *.iml
