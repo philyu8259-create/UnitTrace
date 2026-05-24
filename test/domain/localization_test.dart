@@ -21,6 +21,15 @@ void main() {
     expect(strings.createProperty, 'Create property');
   });
 
+  test('report empty action points to home in both languages', () {
+    final english = AppStrings.forLanguageCode('en');
+    final chinese = AppStrings.forLanguageCode('zh_Hans');
+
+    expect(english.goToInspection, 'Go to Home');
+    expect(english.reportsGuideSubtitle, contains('Home inspection'));
+    expect(chinese.goToInspection, '回到首页');
+  });
+
   test('localizes default inspection room templates', () {
     expect(RoomTemplates.forLanguageCode('en').take(3), [
       'Entry',

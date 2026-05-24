@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:unittrace/main.dart';
 import 'package:unittrace/src/data/in_memory_unittrace_store.dart';
+import 'package:url_launcher_platform_interface/link.dart';
+import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 class EmptyCameraPicker implements UnitTraceImagePicker {
   @override
@@ -16,6 +18,34 @@ class EmptyCameraPicker implements UnitTraceImagePicker {
   @override
   Future<List<XFile>> pickMultiImage({int? imageQuality}) async {
     return const [];
+  }
+}
+
+class RecordingUrlLauncher extends UrlLauncherPlatform {
+  final launchedUrls = <String>[];
+
+  @override
+  LinkDelegate? get linkDelegate => null;
+
+  @override
+  Future<bool> launchUrl(String url, LaunchOptions options) async {
+    launchedUrls.add(url);
+    return true;
+  }
+
+  @override
+  Future<bool> launch(
+    String url, {
+    required bool useSafariVC,
+    required bool useWebView,
+    required bool enableJavaScript,
+    required bool enableDomStorage,
+    required bool universalLinksOnly,
+    required Map<String, String> headers,
+    String? webOnlyWindowName,
+  }) async {
+    launchedUrls.add(url);
+    return true;
   }
 }
 
@@ -116,6 +146,82 @@ void main() {
     expect(find.text('Local Evidence Vault'), findsNothing);
     expect(find.text('Timestamp · Hash · Signature'), findsNothing);
     expect(find.text('UNITTRACE'), findsNothing);
+  });
+
+  testWidgets('More links route to English public pages in English locale', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(440, 956);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final previousLauncher = UrlLauncherPlatform.instance;
+    final launcher = RecordingUrlLauncher();
+    UrlLauncherPlatform.instance = launcher;
+    addTearDown(() => UrlLauncherPlatform.instance = previousLauncher);
+
+    await tester.pumpWidget(
+      UnitTraceApp(
+        store: InMemoryUnitTraceStore(),
+        initialLocale: const Locale('en'),
+        captureLocation: false,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('More'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Privacy Policy').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Support').last);
+    await tester.pumpAndSettle();
+
+    expect(
+      launcher.launchedUrls,
+      containsAllInOrder([
+        'https://philyu8259-create.github.io/UnitTrace/privacy-policy-en.html',
+        'https://philyu8259-create.github.io/UnitTrace/support-en.html',
+      ]),
+    );
+  });
+
+  testWidgets('More links route to Chinese public pages in Chinese locale', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(440, 956);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final previousLauncher = UrlLauncherPlatform.instance;
+    final launcher = RecordingUrlLauncher();
+    UrlLauncherPlatform.instance = launcher;
+    addTearDown(() => UrlLauncherPlatform.instance = previousLauncher);
+
+    await tester.pumpWidget(
+      UnitTraceApp(
+        store: InMemoryUnitTraceStore(),
+        initialLocale: const Locale('zh', 'Hans'),
+        captureLocation: false,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('更多'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('隐私政策').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('支持与反馈').last);
+    await tester.pumpAndSettle();
+
+    expect(
+      launcher.launchedUrls,
+      containsAllInOrder([
+        'https://philyu8259-create.github.io/UnitTrace/privacy-policy-zh.html',
+        'https://philyu8259-create.github.io/UnitTrace/support-zh.html',
+      ]),
+    );
   });
 
   testWidgets('runs inspection note and signature flow', (tester) async {

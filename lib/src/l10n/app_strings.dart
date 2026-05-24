@@ -289,8 +289,8 @@ class AppStrings {
       isChinese ? '报告从哪里来' : 'Where reports come from';
   String get reportsGuideSubtitle => isChinese
       ? '进入检查页，添加证据和签名后生成 PDF。导出的报告会保存在这里。'
-      : 'Open Inspect, add evidence and signatures, then generate a PDF. Exports appear here.';
-  String get goToInspection => isChinese ? '去检查页' : 'Go to Inspect';
+      : 'Open a Home inspection, add evidence and signatures, then generate a PDF. Exports appear here.';
+  String get goToInspection => isChinese ? '回到首页' : 'Go to Home';
   String get moreGuideTitle => isChinese ? '上架前配置' : 'Before release';
   String get moreGuideSubtitle => isChinese
       ? '会员、隐私政策、支持链接和恢复购买会统一放在这里。'
