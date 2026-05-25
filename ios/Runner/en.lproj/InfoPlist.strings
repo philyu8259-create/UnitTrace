@@ -2,3 +2,4 @@
 "NSCameraUsageDescription" = "UnitTrace uses the camera to capture rental condition evidence photos.";
 "NSLocationWhenInUseUsageDescription" = "UnitTrace can add approximate location metadata to evidence reports when you allow it.";
 "NSPhotoLibraryUsageDescription" = "UnitTrace lets you choose existing photos to include in local evidence reports.";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "UnitTrace uses location only while you are using the app to add optional approximate location metadata to evidence reports. Background location is not used.";

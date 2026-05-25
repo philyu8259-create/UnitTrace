@@ -30,6 +30,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>UnitTrace uses the camera to capture rental condition evidence photos.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>UnitTrace uses location only while you are using the app to add optional approximate location metadata to evidence reports. Background location is not used.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>UnitTrace can add approximate location metadata to evidence reports when you allow it.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
