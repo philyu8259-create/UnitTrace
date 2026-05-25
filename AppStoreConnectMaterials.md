@@ -10,9 +10,9 @@ Review contact:
 - Phone: `+8615692162538`
 
 Public URLs:
-- English privacy: `https://philyu8259-create.github.io/UnitTrace/privacy-policy-en.html`
+- English privacy: `https://philyu8259-create.github.io/UnitTrace/privacy-policy-en.html?v=832f34b`
 - English support: `https://philyu8259-create.github.io/UnitTrace/support-en.html`
-- Chinese privacy: `https://philyu8259-create.github.io/UnitTrace/privacy-policy-zh.html`
+- Chinese privacy: `https://philyu8259-create.github.io/UnitTrace/privacy-policy-zh.html?v=832f34b`
 - Chinese support: `https://philyu8259-create.github.io/UnitTrace/support-zh.html`
 - EULA: Apple Standard EULA, `https://www.apple.com/legal/internet-services/itunes/dev/stdeula/`
 
