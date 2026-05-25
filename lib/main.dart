@@ -209,6 +209,7 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
     super.initState();
     _mobileTabIndex = switch (widget.screenshotScenario) {
       ScreenshotSeed.reports => 1,
+      ScreenshotSeed.reportPreview => 1,
       ScreenshotSeed.more => 2,
       _ => 0,
     };
@@ -563,6 +564,8 @@ class _UnitTraceHomeState extends State<UnitTraceHome> {
                     132,
                   ),
                   onOpenInspection: () => setState(() => _mobileTabIndex = 0),
+                  autoOpenFirstReport:
+                      widget.screenshotScenario == ScreenshotSeed.reportPreview,
                 ),
                 _ => _MorePanel(
                   strings: strings,
@@ -2944,6 +2947,7 @@ class _ReportHistoryPanel extends StatefulWidget {
     this.scrollController,
     this.showClose = false,
     this.onOpenInspection,
+    this.autoOpenFirstReport = false,
   });
 
   final AppStrings strings;
@@ -2951,6 +2955,7 @@ class _ReportHistoryPanel extends StatefulWidget {
   final ScrollController? scrollController;
   final bool showClose;
   final VoidCallback? onOpenInspection;
+  final bool autoOpenFirstReport;
 
   @override
   State<_ReportHistoryPanel> createState() => _ReportHistoryPanelState();
@@ -2959,11 +2964,22 @@ class _ReportHistoryPanel extends StatefulWidget {
 class _ReportHistoryPanelState extends State<_ReportHistoryPanel> {
   late Future<List<ReportArchiveEntry>> _reportsFuture;
   ReportArchiveFilter _filter = ReportArchiveFilter.all;
+  bool _didAutoOpenFirstReport = false;
 
   @override
   void initState() {
     super.initState();
     _reportsFuture = _loadReports();
+    if (widget.autoOpenFirstReport) {
+      _reportsFuture.then((reports) {
+        if (!mounted || _didAutoOpenFirstReport || reports.isEmpty) return;
+        _didAutoOpenFirstReport = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _openPdfPreview(context, widget.strings, reports.first.pdfFile);
+        });
+      });
+    }
   }
 
   Future<List<ReportArchiveEntry>> _loadReports() async {

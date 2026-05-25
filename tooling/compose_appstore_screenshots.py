@@ -43,6 +43,7 @@ COPY: dict[str, dict[str, ShotCopy]] = {
         "04_final_report_step": ShotCopy("签名后生成正式证据包", "导出 PDF 报告和 JSON manifest"),
         "05_report_archive": ShotCopy("报告档案随时预览分享", "按检查类型区分，不再找错文件"),
         "06_more": ShotCopy("隐私、支持和 Pro 集中管理", "本地优先，无账号，适合租客和房东"),
+        "07_pdf_report_preview": ShotCopy("PDF 报告直接预览房间照片", "照片、备注、时间、签名和哈希一页留证"),
     },
     "en": {
         "01_empty_home": ShotCopy("Start with your first property file", "Keep photos local and build evidence before move-in"),
@@ -51,6 +52,7 @@ COPY: dict[str, dict[str, ShotCopy]] = {
         "04_final_report_step": ShotCopy("Generate a formal evidence package", "Export PDF reports and JSON manifests"),
         "05_report_archive": ShotCopy("Preview and share report archives", "Keep each inspection type clearly separated"),
         "06_more": ShotCopy("Privacy, support, and Pro in one place", "Local-first, account-free, built for tenants and landlords"),
+        "07_pdf_report_preview": ShotCopy("PDF reports include room photos", "Photos, notes, timestamps, signatures, and hashes in one packet"),
     },
 }
 

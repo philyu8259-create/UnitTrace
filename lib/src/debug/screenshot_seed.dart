@@ -20,6 +20,7 @@ class ScreenshotSeed {
   static const inspection = 'inspection';
   static const inspectionFinal = 'inspection_final';
   static const reports = 'reports';
+  static const reportPreview = 'report_preview';
   static const more = 'more';
 
   static bool shouldSeed(String scenario) => scenario.trim().isNotEmpty;
@@ -187,7 +188,7 @@ class ScreenshotSeed {
     );
     await store.saveInspection(followUp);
 
-    if (scenario == reports || scenario == dashboard) {
+    if (scenario == reports || scenario == reportPreview || scenario == dashboard) {
       await ReportExporter().export(
         property: property,
         inspection: inspection,
