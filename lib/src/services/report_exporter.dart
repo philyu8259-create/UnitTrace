@@ -656,7 +656,7 @@ class _ReportPdfLabels {
       isChinese ? '本报告没有签名记录。' : 'No signatures in this report.';
   String get disclaimerTitle => isChinese ? '免责声明' : 'Disclaimer';
   String get freeWatermark =>
-      isChinese ? '由房况留证内测版生成' : 'Generated with UnitTrace Beta';
+      isChinese ? '由房况留证免费版生成' : 'Generated with UnitTrace Free';
   String get noNote => isChinese ? '无备注' : '(No note)';
   String get severity => isChinese ? '严重程度' : 'Severity';
   String get capturedAt => isChinese ? '采集时间' : 'Captured';
