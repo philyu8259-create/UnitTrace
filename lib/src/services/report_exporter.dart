@@ -230,17 +230,6 @@ class ReportExporter {
               style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
             ),
           ),
-          if (watermarked)
-            pw.Padding(
-              padding: const pw.EdgeInsets.only(top: 18),
-              child: pw.Text(
-                labels.freeWatermark,
-                style: const pw.TextStyle(
-                  fontSize: 11,
-                  color: PdfColors.grey500,
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -655,8 +644,6 @@ class _ReportPdfLabels {
   String get noSignatures =>
       isChinese ? '本报告没有签名记录。' : 'No signatures in this report.';
   String get disclaimerTitle => isChinese ? '免责声明' : 'Disclaimer';
-  String get freeWatermark =>
-      isChinese ? '由房况留证免费版生成' : 'Generated with UnitTrace Free';
   String get noNote => isChinese ? '无备注' : '(No note)';
   String get severity => isChinese ? '严重程度' : 'Severity';
   String get capturedAt => isChinese ? '采集时间' : 'Captured';

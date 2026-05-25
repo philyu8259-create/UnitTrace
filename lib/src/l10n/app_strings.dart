@@ -84,8 +84,8 @@ class AppStrings {
       ? '还没有房屋。先创建一个房屋，再生成证据报告。'
       : 'No properties yet. Create a property to start an evidence report.';
   String get freePlan => isChinese
-      ? '免费版：最多 2 个房屋，PDF 带水印。本地保存，不上传照片。'
-      : 'Free version: up to 2 properties, watermarked PDF. Local-only, no photo upload.';
+      ? '最多 2 个房屋。本地保存，不上传照片。'
+      : 'Up to 2 properties. Local-only, no photo upload.';
   String get localOnly => isChinese ? '本地保存' : 'Local only';
   String get verified => isChinese ? '已验证' : 'Verified';
   String get ready => isChinese ? '就绪' : 'Ready';
