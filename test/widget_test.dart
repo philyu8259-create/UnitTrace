@@ -418,7 +418,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('关于与合规'), findsOneWidget);
-    expect(find.text('一次性购买 \$24.99'), findsOneWidget);
+    expect(find.text('一次性购买 ¥168'), findsOneWidget);
     expect(find.text('About & Compliance'), findsNothing);
     expect(find.text('Local Data'), findsNothing);
     expect(find.text('Buy once \$24.99'), findsNothing);
@@ -448,7 +448,7 @@ void main() {
     expect(find.text('Buy once \$24.99'), findsOneWidget);
     expect(find.text('关于与合规'), findsNothing);
     expect(find.text('本地数据说明'), findsNothing);
-    expect(find.text('一次性购买 \$24.99'), findsNothing);
+    expect(find.text('一次性购买 ¥168'), findsNothing);
     await tester.scrollUntilVisible(
       find.text('Local Data'),
       180,

@@ -3,7 +3,7 @@
 App ID: `6772764448`
 Bundle ID: `com.xufanzhilian.unittrace`
 SKU: `UNITTRACEIOS20260525`
-IAP: `unittrace_pro_lifetime` / `UnitTrace Pro Lifetime` / `$24.99`
+IAP: `unittrace_pro_lifetime` / `UnitTrace Pro Lifetime` / `$24.99` / `¥168`
 
 Review contact:
 - Email: `contact@xufanzhilian.com`

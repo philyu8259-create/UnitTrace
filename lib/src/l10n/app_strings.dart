@@ -270,7 +270,7 @@ class AppStrings {
       : 'One-time unlock for more properties, watermark-free PDFs, full report history, and future Pro features.';
   String get proLifetimeTitle =>
       isChinese ? 'UnitTrace Pro 永久解锁' : 'UnitTrace Pro Lifetime';
-  String get proLifetimePrice => r'$24.99';
+  String get proLifetimePrice => isChinese ? '¥168' : r'$24.99';
   String get proLifetimeSubtitle => isChinese
       ? '一次性购买，解锁多房屋、无水印 PDF、完整报告历史和后续 Pro 功能。'
       : 'One-time purchase for more properties, watermark-free PDFs, full report history, and future Pro features.';
