@@ -6,7 +6,7 @@ SKU: `UNITTRACEIOS20260525`
 IAP: `unittrace_pro_lifetime` / `UnitTrace Pro Lifetime` / `$24.99`
 
 Review contact:
-- Email: `philyu8259@gmail.com`
+- Email: `contact@xufanzhilian.com`
 - Phone: `+8615692162538`
 
 Public URLs:
